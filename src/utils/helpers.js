@@ -54,9 +54,8 @@ export function getStreak(kidId, transactions) {
       t => t.kidId === kidId && t.type === 'earn' && t.timestamp.startsWith(dateStr)
     );
     if (hasEarning) streak++;
-    else if (i > 0) break; // allow today to not have earned yet
+    else if (i > 0) break;
     else if (i === 0 && !hasEarning) {
-      // check if yesterday had one
       continue;
     }
   }
@@ -184,6 +183,81 @@ export function compressImage(file, maxWidth = 300, quality = 0.7) {
     };
     reader.readAsDataURL(file);
   });
+}
+
+// Variable Reward Multiplier — 80% 1x, 15% 2x, 5% 3x
+export function rollMultiplier() {
+  const roll = Math.random();
+  if (roll < 0.05) return { multiplier: 3, label: 'TRIPLE BONUS!', emoji: '🌈', color: 'from-purple-500 to-pink-500' };
+  if (roll < 0.20) return { multiplier: 2, label: 'DOUBLE BONUS!', emoji: '⚡', color: 'from-amber-400 to-orange-500' };
+  return { multiplier: 1, label: null, emoji: null, color: null };
+}
+
+// Get last week's earnings for a kid (Monday to Sunday before current week)
+export function getKidEarningsLastWeek(kidId, transactions) {
+  const now = new Date();
+  const day = now.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const thisMonday = new Date(now);
+  thisMonday.setDate(now.getDate() + mondayOffset);
+  thisMonday.setHours(0, 0, 0, 0);
+
+  const lastMonday = new Date(thisMonday);
+  lastMonday.setDate(lastMonday.getDate() - 7);
+
+  return transactions
+    .filter(t => {
+      if (t.kidId !== kidId || t.type !== 'earn') return false;
+      const d = new Date(t.timestamp);
+      return d >= lastMonday && d < thisMonday;
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
+// Most Improved leaderboard — week-over-week improvement
+export function getMostImprovedLeaderboard(kids, transactions) {
+  return kids
+    .map(kid => {
+      const thisWeek = getKidEarningsThisWeek(kid.id, transactions);
+      const lastWeek = getKidEarningsLastWeek(kid.id, transactions);
+      const improvement = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : (thisWeek > 0 ? 100 : 0);
+      return { ...kid, thisWeek, lastWeek, improvement };
+    })
+    .sort((a, b) => b.improvement - a.improvement);
+}
+
+// Achievements system
+export function getAchievements(kidId, transactions) {
+  const totalEarned = transactions
+    .filter(t => t.kidId === kidId && t.type === 'earn')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const streak = getStreak(kidId, transactions);
+  const longestStreak = getLongestStreak(kidId, transactions);
+  const totalTransactions = transactions.filter(t => t.kidId === kidId && t.type === 'earn').length;
+  const multiplierHits = transactions.filter(t => t.kidId === kidId && t.multiplier && t.multiplier > 1).length;
+
+  const all = [
+    // Earning milestones
+    { id: 'earn_10', name: 'First Steps', desc: 'Earned $10 K$', icon: '👣', unlocked: totalEarned >= 10, progress: Math.min(totalEarned, 10), target: 10 },
+    { id: 'earn_50', name: 'Rising Star', desc: 'Earned $50 K$', icon: '⭐', unlocked: totalEarned >= 50, progress: Math.min(totalEarned, 50), target: 50 },
+    { id: 'earn_100', name: 'Century Club', desc: 'Earned $100 K$', icon: '💯', unlocked: totalEarned >= 100, progress: Math.min(totalEarned, 100), target: 100 },
+    { id: 'earn_500', name: 'K$ Mogul', desc: 'Earned $500 K$', icon: '💰', unlocked: totalEarned >= 500, progress: Math.min(totalEarned, 500), target: 500 },
+    { id: 'earn_1000', name: 'Kidzy Legend', desc: 'Earned $1,000 K$', icon: '👑', unlocked: totalEarned >= 1000, progress: Math.min(totalEarned, 1000), target: 1000 },
+    // Streak milestones
+    { id: 'streak_3', name: 'Hat Trick', desc: '3-day streak', icon: '🔥', unlocked: longestStreak >= 3, progress: Math.min(longestStreak, 3), target: 3 },
+    { id: 'streak_7', name: 'Week Warrior', desc: '7-day streak', icon: '⚔️', unlocked: longestStreak >= 7, progress: Math.min(longestStreak, 7), target: 7 },
+    { id: 'streak_14', name: 'Fortnight Hero', desc: '14-day streak', icon: '🦸', unlocked: longestStreak >= 14, progress: Math.min(longestStreak, 14), target: 14 },
+    { id: 'streak_30', name: 'Monthly Master', desc: '30-day streak', icon: '🏅', unlocked: longestStreak >= 30, progress: Math.min(longestStreak, 30), target: 30 },
+    // Activity milestones
+    { id: 'tasks_10', name: 'Getting Started', desc: 'Completed 10 tasks', icon: '📋', unlocked: totalTransactions >= 10, progress: Math.min(totalTransactions, 10), target: 10 },
+    { id: 'tasks_50', name: 'Task Master', desc: 'Completed 50 tasks', icon: '🎯', unlocked: totalTransactions >= 50, progress: Math.min(totalTransactions, 50), target: 50 },
+    { id: 'tasks_100', name: 'Habit Builder', desc: 'Completed 100 tasks', icon: '🏗️', unlocked: totalTransactions >= 100, progress: Math.min(totalTransactions, 100), target: 100 },
+    // Bonus multiplier milestones
+    { id: 'multi_1', name: 'Lucky Day', desc: 'Got your first bonus multiplier', icon: '🍀', unlocked: multiplierHits >= 1, progress: Math.min(multiplierHits, 1), target: 1 },
+    { id: 'multi_5', name: 'Fortune Finder', desc: 'Got 5 bonus multipliers', icon: '🎰', unlocked: multiplierHits >= 5, progress: Math.min(multiplierHits, 5), target: 5 },
+  ];
+
+  return { all, unlocked: all.filter(a => a.unlocked).length, total: all.length };
 }
 
 export function getRandomEncouragement() {
