@@ -96,7 +96,7 @@ function kidzyReducer(state, action) {
     case 'REDEEM_WISH': {
       return {
         ...state,
-        wishListItems: state.wishListItems.map(w => w.id === action.payload.wishId ? { ...w, status: 'redeemed', redeemedAt: new Date().toISOString() } : w),
+        wishListItems: state.wishListItems.map(w => w.id === action.payload.wishId ? { ...w, status: 'redeemed', fulfilled: false, redeemedAt: new Date().toISOString() } : w),
         transactions: [...state.transactions, {
           id: generateId('tx'),
           kidId: action.payload.kidId,
@@ -106,6 +106,12 @@ function kidzyReducer(state, action) {
           reason: `Redeemed: ${action.payload.wishName}`,
           timestamp: new Date().toISOString(),
         }],
+      };
+    }
+    case 'FULFILL_WISH': {
+      return {
+        ...state,
+        wishListItems: state.wishListItems.map(w => w.id === action.payload ? { ...w, fulfilled: true, fulfilledAt: new Date().toISOString() } : w),
       };
     }
     // DREAM GOALS
