@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
-import { getCompletedBehaviorsToday, getRandomEncouragement, isBehaviorCompletedToday } from '../../utils/helpers';
+import { getCompletedBehaviorsToday, getRandomEncouragement, isBehaviorCompletedToday, rollMultiplier } from '../../utils/helpers';
 import Modal from '../shared/Modal';
 import ConfettiEffect from '../shared/ConfettiEffect';
 import DollarBadge from '../shared/DollarBadge';
@@ -24,21 +24,34 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
       return; // Already done today
     }
 
+    // Roll for multiplier bonus
+    const roll = rollMultiplier();
+    const finalAmount = item.dollarValue * roll.multiplier;
+
     dispatch({
       type: 'ADD_TRANSACTION',
       payload: {
         kidId,
         parentId: state.currentParentId,
         type: 'earn',
-        amount: item.dollarValue,
-        reason: item.name,
+        amount: finalAmount,
+        reason: roll.multiplier > 1 ? `${item.name} (${roll.multiplier}x!)` : item.name,
         category: categoryName,
         behaviorId: item.id,
+        multiplier: roll.multiplier,
       }
     });
-    setLastEarned({ amount: item.dollarValue, message: getRandomEncouragement() });
+    setLastEarned({
+      amount: finalAmount,
+      baseAmount: item.dollarValue,
+      multiplier: roll.multiplier,
+      multiplierLabel: roll.label,
+      multiplierEmoji: roll.emoji,
+      multiplierColor: roll.color,
+      message: roll.multiplier > 1 ? `${roll.emoji} ${roll.label} ${roll.emoji}` : getRandomEncouragement(),
+    });
     setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 2000);
+    setTimeout(() => setShowConfetti(false), roll.multiplier > 1 ? 3000 : 2000);
   };
 
   const handleCustomEarn = () => {
@@ -68,9 +81,19 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
       <ConfettiEffect active={showConfetti} />
       <Modal isOpen={isOpen} onClose={onClose} title={`Earn K$ — ${kid?.name}`} size="lg">
         {lastEarned && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-center animate-bounce-in">
-            <p className="text-green-700 font-bold text-lg">+${lastEarned.amount} K$</p>
-            <p className="text-green-600 text-sm">{lastEarned.message}</p>
+          <div className={`mb-4 p-3 rounded-xl text-center animate-bounce-in ${
+            lastEarned.multiplier > 1
+              ? `bg-gradient-to-r ${lastEarned.multiplierColor} text-white`
+              : 'bg-green-50 border border-green-200'
+          }`}>
+            {lastEarned.multiplier > 1 && (
+              <p className="text-2xl font-bold mb-1">{lastEarned.multiplierEmoji} {lastEarned.multiplier}x BONUS! {lastEarned.multiplierEmoji}</p>
+            )}
+            <p className={`font-bold text-lg ${lastEarned.multiplier > 1 ? 'text-white' : 'text-green-700'}`}>
+              +${lastEarned.amount} K$
+              {lastEarned.multiplier > 1 && <span className="text-sm opacity-80 ml-1">(was ${lastEarned.baseAmount})</span>}
+            </p>
+            <p className={`text-sm ${lastEarned.multiplier > 1 ? 'text-white/90' : 'text-green-600'}`}>{lastEarned.message}</p>
           </div>
         )}
 
