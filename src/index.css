@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme {
+  --color-kidzy-purple: #7C3AED;
+  --color-kidzy-purple-light: #A78BFA;
+  --color-kidzy-purple-dark: #5B21B6;
+  --color-kidzy-blue: #3B82F6;
+  --color-kidzy-green: #10B981;
+  --color-kidzy-yellow: #F59E0B;
+  --color-kidzy-orange: #F97316;
+  --color-kidzy-pink: #EC4899;
+  --color-kidzy-red: #EF4444;
+  --color-kidzy-teal: #14B8A6;
+  --color-kidzy-bg: #F5F3FF;
+  --color-kidzy-card: #FFFFFF;
+  --color-kidzy-dark: #1E1B4B;
+  --color-kidzy-gray: #6B7280;
+  --color-kidzy-gray-light: #F3F4F6;
+  --font-family-display: 'Fredoka', sans-serif;
+  --font-family-body: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-family-body);
+    background: var(--color-kidzy-bg);
+    color: var(--color-kidzy-dark);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+  }
+  #root { min-height: 100dvh; }
+  h1, h2, h3, h4 { font-family: var(--font-family-display); }
+}
+
+@layer utilities {
+  .font-display { font-family: var(--font-family-display); }
+}
+
+@keyframes pulse-fire {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+@keyframes pop-in {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes float-up {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-60px); opacity: 0; }
+}
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+@keyframes bounce-in {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes slide-up {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+.animate-pulse-fire { animation: pulse-fire 1.5s ease-in-out infinite; }
+.animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+.animate-float-up { animation: float-up 1.5s ease-out forwards; }
+.animate-bounce-in { animation: bounce-in 0.6s ease-out; }
+.animate-slide-up { animation: slide-up 0.4s ease-out; }
+.animate-wiggle { animation: wiggle 0.5s ease-in-out; }
