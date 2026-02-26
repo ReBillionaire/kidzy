@@ -7,7 +7,7 @@ import ConfettiEffect from '../shared/ConfettiEffect';
 import Avatar from '../shared/Avatar';
 import DollarBadge from '../shared/DollarBadge';
 import { compressImage } from '../../utils/helpers';
-import { ArrowLeft, Plus, Gift, Star, Trash2, Unlock, ImagePlus, Mountain, Bike, Tent, Gamepad2, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, Plus, Gift, Star, Trash2, Unlock, ImagePlus, Mountain, Bike, Tent, Gamepad2, ShoppingBag, CheckCircle2, Clock } from 'lucide-react';
 import { useRef } from 'react';
 
 const WISH_ICONS = ['🎮', '🚲', '⛺', '🎯', '📱', '🎨', '🏀', '🎸', '👟', '🎪', '🎢', '🐕', '🍦', '📚', '🎭', '✈️'];
@@ -19,7 +19,7 @@ export default function RewardsPage({ onBack, selectedKidId }) {
   const [showAddDream, setShowAddDream] = useState(false);
   const [activeKid, setActiveKid] = useState(selectedKidId || state.kids[0]?.id);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [tab, setTab] = useState('wishes');
+  const [tab, setTab] = useState('wishes'); // wishes, dreams
 
   const kid = state.kids.find(k => k.id === activeKid);
   const balance = kid ? getKidBalance(kid.id, state.transactions) : 0;
@@ -154,20 +154,51 @@ export default function RewardsPage({ onBack, selectedKidId }) {
               </div>
             ) : (
               <div className="space-y-3">
-                {redeemedWishes.map(wish => (
-                  <div key={wish.id} className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-4 flex items-center gap-3">
-                    {wish.image ? (
-                      <img src={wish.image} className="w-14 h-14 rounded-xl object-cover" alt="" />
-                    ) : (
-                      <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center text-2xl">{wish.icon || '🎁'}</div>
-                    )}
-                    <div className="flex-1">
-                      <p className="font-bold text-green-800">{wish.name}</p>
-                      <p className="text-green-600 text-sm">Unlocked!</p>
-                    </div>
-                    <span className="text-2xl">✅</span>
+                {/* Pending fulfillment */}
+                {redeemedWishes.filter(w => !w.fulfilled).length > 0 && (
+                  <div className="mb-2">
+                    <h4 className="text-sm font-semibold text-amber-700 flex items-center gap-1 mb-2"><Clock size={14} /> Awaiting Fulfillment</h4>
+                    {redeemedWishes.filter(w => !w.fulfilled).map(wish => (
+                      <div key={wish.id} className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-2xl p-4 flex items-center gap-3 mb-2">
+                        {wish.image ? (
+                          <img src={wish.image} className="w-14 h-14 rounded-xl object-cover" alt="" />
+                        ) : (
+                          <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center text-2xl">{wish.icon || '🎁'}</div>
+                        )}
+                        <div className="flex-1">
+                          <p className="font-bold text-amber-800">{wish.name}</p>
+                          <p className="text-amber-600 text-xs">Redeemed — not yet given</p>
+                        </div>
+                        <button
+                          onClick={() => dispatch({ type: 'FULFILL_WISH', payload: wish.id })}
+                          className="px-3 py-1.5 bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xs font-bold rounded-lg shadow-sm"
+                        >
+                          Mark Given
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+                {/* Fulfilled */}
+                {redeemedWishes.filter(w => w.fulfilled).length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-green-700 flex items-center gap-1 mb-2"><CheckCircle2 size={14} /> Fulfilled</h4>
+                    {redeemedWishes.filter(w => w.fulfilled).map(wish => (
+                      <div key={wish.id} className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-4 flex items-center gap-3 mb-2">
+                        {wish.image ? (
+                          <img src={wish.image} className="w-14 h-14 rounded-xl object-cover" alt="" />
+                        ) : (
+                          <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center text-2xl">{wish.icon || '🎁'}</div>
+                        )}
+                        <div className="flex-1">
+                          <p className="font-bold text-green-800">{wish.name}</p>
+                          <p className="text-green-600 text-xs">Given!</p>
+                        </div>
+                        <span className="text-2xl">✅</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -178,7 +209,7 @@ export default function RewardsPage({ onBack, selectedKidId }) {
       <AddDreamModal isOpen={showAddDream} onClose={() => setShowAddDream(false)} kidId={activeKid} />
     </div>
   );
-        }
+}
 
 function WishCard({ wish, balance, onRedeem, onRemove }) {
   const progress = getWishListProgress(wish, balance);
@@ -271,6 +302,7 @@ function AddWishModal({ isOpen, onClose, kidId }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add to Wish List">
       <div className="space-y-4">
+        {/* Image upload */}
         <div className="flex justify-center">
           {image ? (
             <div className="relative">
@@ -289,6 +321,7 @@ function AddWishModal({ isOpen, onClose, kidId }) {
           <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
         </div>
 
+        {/* Icon selector */}
         <div>
           <label className="block text-sm font-semibold text-kidzy-dark mb-1">Pick an Icon</label>
           <div className="flex flex-wrap gap-2">
