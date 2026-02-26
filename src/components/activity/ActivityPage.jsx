@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
-import { useKidzy } from '../../context/KidzyContext';
+import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import { formatDate, formatTime } from '../../utils/storage';
 import Avatar from '../shared/Avatar';
 import DollarBadge from '../shared/DollarBadge';
-import { ArrowLeft, Filter, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Filter, TrendingUp, TrendingDown, RefreshCw, Undo2, X } from 'lucide-react';
 
 export default function ActivityPage({ onBack }) {
   const state = useKidzy();
+  const dispatch = useKidzyDispatch();
   const [filterKid, setFilterKid] = useState('all');
   const [filterType, setFilterType] = useState('all');
+  const [confirmUndo, setConfirmUndo] = useState(null); // txId to undo
 
   const transactions = useMemo(() => {
     let txns = [...state.transactions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -32,6 +34,18 @@ export default function ActivityPage({ onBack }) {
   const getKidName = (kidId) => state.kids.find(k => k.id === kidId)?.name || 'Unknown';
   const getKid = (kidId) => state.kids.find(k => k.id === kidId);
 
+  const handleUndo = (txId) => {
+    dispatch({ type: 'REMOVE_TRANSACTION', payload: txId });
+    setConfirmUndo(null);
+  };
+
+  // Can undo if transaction is within last 24 hours
+  const canUndo = (tx) => {
+    const txTime = new Date(tx.timestamp).getTime();
+    const now = Date.now();
+    return (now - txTime) < 24 * 60 * 60 * 1000;
+  };
+
   return (
     <div className="pb-24">
       {/* Header */}
@@ -40,7 +54,7 @@ export default function ActivityPage({ onBack }) {
           <button onClick={onBack} className="p-2 bg-white/15 rounded-full"><ArrowLeft size={18} /></button>
           <h1 className="text-xl font-display font-bold">Activity Log</h1>
         </div>
-        <p className="text-blue-100 text-sm">Track who gave, deducted, or redeemed K$</p>
+        <p className="text-blue-100 text-sm">Track who gave, deducted, or redeemed K$. Tap to undo mistakes.</p>
       </div>
 
       {/* Filters */}
@@ -65,6 +79,29 @@ export default function ActivityPage({ onBack }) {
         </select>
       </div>
 
+      {/* Undo confirmation banner */}
+      {confirmUndo && (
+        <div className="mx-4 mt-3 p-3 bg-amber-50 border-2 border-amber-300 rounded-xl flex items-center gap-3 animate-bounce-in">
+          <Undo2 size={20} className="text-amber-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800">Undo this transaction?</p>
+            <p className="text-xs text-amber-600">The K$ will be reversed.</p>
+          </div>
+          <button
+            onClick={() => handleUndo(confirmUndo)}
+            className="px-3 py-1.5 bg-amber-500 text-white font-bold rounded-lg text-sm"
+          >
+            Undo
+          </button>
+          <button
+            onClick={() => setConfirmUndo(null)}
+            className="p-1 text-amber-400 hover:text-amber-600"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
       {/* Transactions */}
       <div className="px-4 mt-4">
         {Object.keys(grouped).length === 0 ? (
@@ -80,8 +117,16 @@ export default function ActivityPage({ onBack }) {
               <div className="space-y-2">
                 {txns.map(tx => {
                   const kid = getKid(tx.kidId);
+                  const undoable = canUndo(tx);
                   return (
-                    <div key={tx.id} className="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border border-gray-50">
+                    <div
+                      key={tx.id}
+                      className={`bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border transition-all ${
+                        confirmUndo === tx.id
+                          ? 'border-amber-300 bg-amber-50/50'
+                          : 'border-gray-50'
+                      }`}
+                    >
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                         tx.type === 'earn' ? 'bg-green-100' : tx.type === 'deduct' ? 'bg-red-100' : 'bg-purple-100'
                       }`}>
@@ -97,12 +142,23 @@ export default function ActivityPage({ onBack }) {
                         <p className="text-xs text-kidzy-gray truncate">{tx.reason}</p>
                         <p className="text-xs text-kidzy-gray/60">by {getParentName(tx.parentId)} at {formatTime(tx.timestamp)}</p>
                       </div>
-                      <DollarBadge
-                        amount={tx.amount}
-                        size="sm"
-                        showPlus={tx.type === 'earn'}
-                        negative={tx.type !== 'earn'}
-                      />
+                      <div className="flex items-center gap-2">
+                        <DollarBadge
+                          amount={tx.amount}
+                          size="sm"
+                          showPlus={tx.type === 'earn'}
+                          negative={tx.type !== 'earn'}
+                        />
+                        {undoable && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmUndo(tx.id); }}
+                            className="p-1.5 text-gray-300 hover:text-amber-500 transition-colors rounded-lg hover:bg-amber-50"
+                            title="Undo this transaction"
+                          >
+                            <Undo2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -113,4 +169,4 @@ export default function ActivityPage({ onBack }) {
       </div>
     </div>
   );
-      }
+}
