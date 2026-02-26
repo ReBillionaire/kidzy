@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
-import { getCompletedBehaviorsToday, getRandomEncouragement, isBehaviorCompletedToday, rollMultiplier } from '../../utils/helpers';
+import { getCompletedBehaviorsToday, getRandomEncouragement, rollMultiplier } from '../../utils/helpers';
 import Modal from '../shared/Modal';
 import ConfettiEffect from '../shared/ConfettiEffect';
 import DollarBadge from '../shared/DollarBadge';
-import { Check, Plus, Sparkles, Lock } from 'lucide-react';
+import { Check, Plus, Sparkles, Zap } from 'lucide-react';
+import { playCoinSound, playBonusSound, vibrateEarn, vibrateBonus } from '../../utils/sounds';
 
 export default function QuickEarnModal({ kidId, isOpen, onClose }) {
   const state = useKidzy();
@@ -17,14 +18,10 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
 
   const kid = state.kids.find(k => k.id === kidId);
   const completedToday = getCompletedBehaviorsToday(kidId, state.transactions);
+  const soundEnabled = state.settings?.soundEnabled !== false;
+  const hapticEnabled = state.settings?.hapticEnabled !== false;
 
   const handleEarn = (item, categoryName) => {
-    // Block duplicate daily behaviors
-    if (item.frequency === 'daily' && isBehaviorCompletedToday(kidId, item.id, state.transactions)) {
-      return; // Already done today
-    }
-
-    // Roll for multiplier bonus
     const roll = rollMultiplier();
     const finalAmount = item.dollarValue * roll.multiplier;
 
@@ -35,23 +32,24 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
         parentId: state.currentParentId,
         type: 'earn',
         amount: finalAmount,
-        reason: roll.multiplier > 1 ? `${item.name} (${roll.multiplier}x!)` : item.name,
+        reason: item.name,
         category: categoryName,
         behaviorId: item.id,
         multiplier: roll.multiplier,
       }
     });
-    setLastEarned({
-      amount: finalAmount,
-      baseAmount: item.dollarValue,
-      multiplier: roll.multiplier,
-      multiplierLabel: roll.label,
-      multiplierEmoji: roll.emoji,
-      multiplierColor: roll.color,
-      message: roll.multiplier > 1 ? `${roll.emoji} ${roll.label} ${roll.emoji}` : getRandomEncouragement(),
-    });
+
+    if (roll.multiplier > 1) {
+      if (soundEnabled) playBonusSound();
+      if (hapticEnabled) vibrateBonus();
+      setLastEarned({ amount: finalAmount, multiplier: roll.multiplier, message: roll.multiplier === 3 ? '\u{1F525} TRIPLE BONUS! \u{1F525}' : '\u{2728} DOUBLE BONUS! \u{2728}' });
+    } else {
+      if (soundEnabled) playCoinSound();
+      if (hapticEnabled) vibrateEarn();
+      setLastEarned({ amount: finalAmount, multiplier: 1, message: getRandomEncouragement() });
+    }
     setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), roll.multiplier > 1 ? 3000 : 2000);
+    setTimeout(() => setShowConfetti(false), 2000);
   };
 
   const handleCustomEarn = () => {
@@ -68,7 +66,9 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
         category: 'Custom',
       }
     });
-    setLastEarned({ amount, message: getRandomEncouragement() });
+    if (soundEnabled) playCoinSound();
+    if (hapticEnabled) vibrateEarn();
+    setLastEarned({ amount, multiplier: 1, message: getRandomEncouragement() });
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 2000);
     setCustomAmount('');
@@ -79,21 +79,18 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
   return (
     <>
       <ConfettiEffect active={showConfetti} />
-      <Modal isOpen={isOpen} onClose={onClose} title={`Earn K$ — ${kid?.name}`} size="lg">
+      <Modal isOpen={isOpen} onClose={onClose} title={`Earn K$ \u2014 ${kid?.name}`} size="lg">
         {lastEarned && (
-          <div className={`mb-4 p-3 rounded-xl text-center animate-bounce-in ${
-            lastEarned.multiplier > 1
-              ? `bg-gradient-to-r ${lastEarned.multiplierColor} text-white`
-              : 'bg-green-50 border border-green-200'
-          }`}>
+          <div className={`mb-4 p-3 rounded-xl text-center animate-bounce-in ${lastEarned.multiplier > 1 ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300' : 'bg-green-50 border border-green-200'}`}>
             {lastEarned.multiplier > 1 && (
-              <p className="text-2xl font-bold mb-1">{lastEarned.multiplierEmoji} {lastEarned.multiplier}x BONUS! {lastEarned.multiplierEmoji}</p>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Zap size={16} className="text-yellow-500" />
+                <span className="text-yellow-700 font-bold text-xs">{lastEarned.multiplier}x MULTIPLIER</span>
+                <Zap size={16} className="text-yellow-500" />
+              </div>
             )}
-            <p className={`font-bold text-lg ${lastEarned.multiplier > 1 ? 'text-white' : 'text-green-700'}`}>
-              +${lastEarned.amount} K$
-              {lastEarned.multiplier > 1 && <span className="text-sm opacity-80 ml-1">(was ${lastEarned.baseAmount})</span>}
-            </p>
-            <p className={`text-sm ${lastEarned.multiplier > 1 ? 'text-white/90' : 'text-green-600'}`}>{lastEarned.message}</p>
+            <p className={`font-bold text-lg ${lastEarned.multiplier > 1 ? 'text-yellow-700' : 'text-green-700'}`}>+${lastEarned.amount} K$</p>
+            <p className={`text-sm ${lastEarned.multiplier > 1 ? 'text-yellow-600' : 'text-green-600'}`}>{lastEarned.message}</p>
           </div>
         )}
 
@@ -107,37 +104,21 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
               <div className="space-y-1.5">
                 {cat.items.map(item => {
                   const isDone = completedToday.includes(item.id);
-                  const isDaily = item.frequency === 'daily';
-                  const isLocked = isDaily && isDone;
                   return (
                     <button
                       key={item.id}
-                      onClick={() => !isLocked && handleEarn(item, cat.name)}
-                      disabled={isLocked}
+                      onClick={() => handleEarn(item, cat.name)}
                       className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left ${
-                        isLocked
-                          ? 'bg-green-50 border-green-200 opacity-75 cursor-not-allowed'
-                          : isDone
+                        isDone
                           ? 'bg-green-50 border-green-200'
                           : 'bg-white border-gray-100 hover:border-kidzy-purple/30 hover:bg-purple-50/50'
                       }`}
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {isLocked ? (
-                          <Check size={16} className="text-green-500 flex-shrink-0" />
-                        ) : isDone ? (
-                          <Check size={16} className="text-green-500 flex-shrink-0" />
-                        ) : null}
+                        {isDone && <Check size={16} className="text-green-500 flex-shrink-0" />}
                         <span className={`text-sm ${isDone ? 'text-green-700' : 'text-kidzy-dark'}`}>{item.name}</span>
-                        {isLocked && (
-                          <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-medium ml-1">Done today</span>
-                        )}
                       </div>
-                      {isLocked ? (
-                        <Lock size={14} className="text-green-400 flex-shrink-0" />
-                      ) : (
-                        <DollarBadge amount={item.dollarValue} size="sm" showPlus />
-                      )}
+                      <DollarBadge amount={item.dollarValue} size="sm" showPlus />
                     </button>
                   );
                 })}
@@ -145,43 +126,24 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
             </div>
           ))}
 
-          {/* Custom earn */}
           {showCustom ? (
             <div className="bg-purple-50 rounded-xl p-4 space-y-3">
               <h4 className="font-display font-bold text-kidzy-dark">Custom Reward</h4>
-              <input
-                type="text"
-                placeholder="What did they do great?"
-                value={customReason}
-                onChange={e => setCustomReason(e.target.value)}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-kidzy-purple focus:outline-none text-sm"
-              />
-              <input
-                type="number"
-                placeholder="K$ amount"
-                value={customAmount}
-                onChange={e => setCustomAmount(e.target.value)}
-                min="1"
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-kidzy-purple focus:outline-none text-sm"
-              />
+              <input type="text" placeholder="What did they do great?" value={customReason} onChange={e => setCustomReason(e.target.value)} maxLength={100}
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-kidzy-purple focus:outline-none text-sm" />
+              <input type="number" placeholder="K$ amount" value={customAmount} onChange={e => setCustomAmount(e.target.value)} min="1" max="100"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-kidzy-purple focus:outline-none text-sm" />
               <div className="flex gap-2">
-                <button
-                  onClick={handleCustomEarn}
-                  disabled={!customAmount || !customReason.trim()}
-                  className="flex-1 bg-gradient-to-r from-kidzy-green to-kidzy-teal text-white font-bold py-2 rounded-lg disabled:opacity-50 text-sm"
-                >
+                <button onClick={handleCustomEarn} disabled={!customAmount || !customReason.trim()}
+                  className="flex-1 bg-gradient-to-r from-kidzy-green to-kidzy-teal text-white font-bold py-2 rounded-lg disabled:opacity-50 text-sm">
                   <Sparkles size={14} className="inline mr-1" /> Award
                 </button>
-                <button onClick={() => setShowCustom(false)} className="px-4 py-2 bg-gray-200 rounded-lg text-sm font-medium">
-                  Cancel
-                </button>
+                <button onClick={() => setShowCustom(false)} className="px-4 py-2 bg-gray-200 rounded-lg text-sm font-medium">Cancel</button>
               </div>
             </div>
           ) : (
-            <button
-              onClick={() => setShowCustom(true)}
-              className="w-full p-3 border-2 border-dashed border-kidzy-purple/30 rounded-xl text-kidzy-purple font-semibold text-sm hover:bg-purple-50 transition-colors flex items-center justify-center gap-2"
-            >
+            <button onClick={() => setShowCustom(true)}
+              className="w-full p-3 border-2 border-dashed border-kidzy-purple/30 rounded-xl text-kidzy-purple font-semibold text-sm hover:bg-purple-50 transition-colors flex items-center justify-center gap-2">
               <Plus size={16} /> Custom Reward
             </button>
           )}

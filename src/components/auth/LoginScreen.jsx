@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
+import { verifyPin, hashPin, isLockedOut, recordFailedAttempt, resetLockout } from '../../utils/storage';
 import Avatar from '../shared/Avatar';
-import { Lock, LogIn } from 'lucide-react';
-import { signInWithGoogle } from '../../utils/firebase';
+import { Lock, LogIn, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginScreen() {
   const state = useKidzy();
@@ -10,67 +10,95 @@ export default function LoginScreen() {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [selectedParent, setSelectedParent] = useState(null);
-  const [authLoading, setAuthLoading] = useState(false);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [isKidMode, setIsKidMode] = useState(false);
 
-  const handleLogin = () => {
-    if (pin === state.family.pin) {
+  // Check lockout on mount and tick every second
+  useEffect(() => {
+    const check = () => {
+      const seconds = isLockedOut();
+      setLockoutSeconds(seconds || 0);
+    };
+    check();
+    const interval = setInterval(check, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleLogin = async () => {
+    if (lockoutSeconds > 0) return;
+
+    const isValid = await verifyPin(pin, state.family.pin);
+    if (isValid) {
+      // Auto-migrate plaintext PIN to hashed
+      if (state.family.pin.length < 10) {
+        const hashed = await hashPin(pin);
+        dispatch({ type: 'LOAD_DATA', payload: { ...state, family: { ...state.family, pin: hashed } } });
+      }
       dispatch({ type: 'SET_CURRENT_PARENT', payload: selectedParent || state.parents[0]?.id });
       setError('');
+      resetLockout();
     } else {
-      setError('Wrong PIN. Try again!');
+      const lockState = recordFailedAttempt();
+      if (lockState.attempts >= 5) {
+        setError(`Too many attempts. Locked for ${Math.ceil((lockState.lockedUntil - Date.now()) / 1000)}s`);
+      } else {
+        setError(`Wrong PIN. ${5 - lockState.attempts} attempts remaining.`);
+      }
       setPin('');
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setAuthLoading(true);
-    setError('');
-    try {
-      const user = await signInWithGoogle();
-      // Find matching parent by email or Google UID
-      const matchedParent = state.parents.find(
-        p => p.email === user.email || p.googleUid === user.uid
-      );
-      if (matchedParent) {
-        dispatch({ type: 'SET_CURRENT_PARENT', payload: matchedParent.id });
-      } else {
-        // Fallback to PIN — Google account not linked to any parent
-        setError('This Google account isn\'t linked to a parent. Use PIN or add this parent in Settings.');
-      }
-    } catch (err) {
-      setError('Google sign-in failed. Use your PIN instead.');
-    } finally {
-      setAuthLoading(false);
-    }
+  const handleKidMode = () => {
+    setIsKidMode(true);
   };
+
+  // Kid mode - read-only view
+  if (isKidMode) {
+    return (
+      <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
+        <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md animate-slide-up">
+          <div className="text-center mb-4">
+            <div className="text-5xl mb-2">{'\u{1F31F}'}</div>
+            <h1 className="text-2xl font-display font-bold text-kidzy-dark">Hey there!</h1>
+            <p className="text-kidzy-gray mt-1">Pick your name to see your dashboard</p>
+          </div>
+
+          <div className="space-y-2">
+            {state.kids.map(kid => (
+              <button
+                key={kid.id}
+                onClick={() => dispatch({ type: 'SET_KID_MODE', payload: kid.id })}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-gray-100 hover:border-kidzy-purple/30 hover:bg-purple-50/50 transition-all text-left"
+              >
+                <Avatar src={kid.avatar} name={kid.name} size="md" />
+                <span className="font-bold text-kidzy-dark">{kid.name}</span>
+                {kid.age && <span className="text-kidzy-gray text-sm ml-auto">Age {kid.age}</span>}
+              </button>
+            ))}
+          </div>
+
+          {state.kids.length === 0 && (
+            <p className="text-center text-kidzy-gray text-sm py-4">No kids added yet. Ask a parent to add you!</p>
+          )}
+
+          <button
+            onClick={() => setIsKidMode(false)}
+            className="w-full mt-4 text-sm text-kidzy-gray hover:text-kidzy-purple transition-colors font-medium"
+          >
+            {'\u{2190}'} Back to Parent Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
       <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md animate-slide-up">
         <div className="text-center mb-6">
-          <div className="text-5xl mb-2">⭐</div>
+          <div className="text-5xl mb-2">{'\u{2B50}'}</div>
           <h1 className="text-3xl font-display font-bold text-kidzy-dark">Kidzy</h1>
           <p className="text-kidzy-gray mt-1">{state.family.name}</p>
-        </div>
-
-        {/* Google Quick Login */}
-        <button
-          onClick={handleGoogleLogin}
-          disabled={authLoading}
-          className="w-full bg-white border-2 border-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-3 mb-4 disabled:opacity-70"
-        >
-          {authLoading ? (
-            <span className="animate-spin text-sm">⏳</span>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-          )}
-          {authLoading ? 'Signing in...' : 'Sign in with Google'}
-        </button>
-
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-px bg-gray-200"></div>
-          <span className="text-xs text-kidzy-gray font-medium">or use PIN</span>
-          <div className="flex-1 h-px bg-gray-200"></div>
         </div>
 
         {state.parents.length > 1 && (
@@ -99,23 +127,40 @@ export default function LoginScreen() {
           </label>
           <input
             type="password"
-            placeholder="••••"
+            placeholder={'\u{2022}\u{2022}\u{2022}\u{2022}'}
             value={pin}
             onChange={e => { setPin(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none text-lg tracking-[0.5em] text-center transition-colors"
+            disabled={lockoutSeconds > 0}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none text-lg tracking-[0.5em] text-center transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
             inputMode="numeric"
           />
-          {error && <p className="text-red-500 text-sm mt-1 text-center">{error}</p>}
+          {lockoutSeconds > 0 && (
+            <div className="flex items-center gap-1.5 mt-2 text-red-500 text-sm justify-center">
+              <ShieldAlert size={14} />
+              <span>Locked out. Try again in {lockoutSeconds}s</span>
+            </div>
+          )}
+          {error && !lockoutSeconds && <p className="text-red-500 text-sm mt-1 text-center">{error}</p>}
         </div>
 
         <button
           onClick={handleLogin}
-          disabled={pin.length < 4}
+          disabled={pin.length < 4 || lockoutSeconds > 0}
           className="w-full bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:shadow-xl transition-all"
         >
           <LogIn size={18} /> Sign In
         </button>
+
+        {/* Kid Mode Button */}
+        {state.kids.length > 0 && (
+          <button
+            onClick={handleKidMode}
+            className="w-full mt-3 py-2.5 text-sm font-semibold text-kidzy-purple hover:bg-purple-50 rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            {'\u{1F9D2}'} I'm a Kid
+          </button>
+        )}
       </div>
     </div>
   );

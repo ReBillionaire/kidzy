@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { KidzyProvider, useKidzy } from './context/KidzyContext';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 import WelcomeScreen from './components/auth/WelcomeScreen';
 import LoginScreen from './components/auth/LoginScreen';
+import OnboardingTutorial from './components/onboarding/OnboardingTutorial';
 import Dashboard from './components/dashboard/Dashboard';
 import RewardsPage from './components/rewards/RewardsPage';
 import LeaderboardPage from './components/leaderboard/LeaderboardPage';
@@ -24,6 +26,19 @@ function AppContent() {
     return <LoginScreen />;
   }
 
+  // Show onboarding tutorial for first-time users
+  if (!state.onboardingComplete) {
+    return (
+      <>
+        <div className="max-w-lg mx-auto min-h-dvh bg-kidzy-bg relative">
+          <Dashboard onNavigate={() => {}} />
+          <BottomNav active="dashboard" onNavigate={() => {}} />
+        </div>
+        <OnboardingTutorial />
+      </>
+    );
+  }
+
   const navigate = (newPage, kidId = null) => {
     setPage(newPage);
     if (kidId) setSelectedKidId(kidId);
@@ -36,11 +51,13 @@ function AppContent() {
 
   return (
     <div className="max-w-lg mx-auto min-h-dvh bg-kidzy-bg relative">
-      {page === 'dashboard' && <Dashboard onNavigate={navigate} />}
-      {page === 'rewards' && <RewardsPage onBack={goHome} selectedKidId={selectedKidId} />}
-      {page === 'leaderboard' && <LeaderboardPage onBack={goHome} />}
-      {page === 'activity' && <ActivityPage onBack={goHome} />}
-      {page === 'settings' && <SettingsPage onBack={goHome} />}
+      <ErrorBoundary showDetails>
+        {page === 'dashboard' && <Dashboard onNavigate={navigate} />}
+        {page === 'rewards' && <RewardsPage onBack={goHome} selectedKidId={selectedKidId} />}
+        {page === 'leaderboard' && <LeaderboardPage onBack={goHome} />}
+        {page === 'activity' && <ActivityPage onBack={goHome} />}
+        {page === 'settings' && <SettingsPage onBack={goHome} />}
+      </ErrorBoundary>
       <BottomNav active={page} onNavigate={navigate} />
     </div>
   );
@@ -48,8 +65,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <KidzyProvider>
-      <AppContent />
-    </KidzyProvider>
+    <ErrorBoundary>
+      <KidzyProvider>
+        <AppContent />
+      </KidzyProvider>
+    </ErrorBoundary>
   );
-    }
+}

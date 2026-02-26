@@ -1,5 +1,6 @@
 // LocalStorage wrapper with JSON serialization
 const STORAGE_KEY = 'kidzy_data';
+const LOCKOUT_KEY = 'kidzy_lockout';
 
 const defaultData = () => ({
   family: null,
@@ -15,7 +16,11 @@ const defaultData = () => ({
     currency: '$',
     weekStartDay: 'monday',
     dailyCheckInReminder: true,
-  }
+    soundEnabled: true,
+    hapticEnabled: true,
+  },
+  challenges: [],
+  onboardingComplete: false,
 });
 
 export function getDefaultCategories() {
@@ -23,7 +28,7 @@ export function getDefaultCategories() {
     {
       id: 'cat_health',
       name: 'Health',
-      icon: '💪',
+      icon: '\u{1F4AA}',
       color: '#10B981',
       items: [
         { id: 'bh_1', name: 'Ate fruits/vegetables', dollarValue: 2, frequency: 'daily' },
@@ -35,7 +40,7 @@ export function getDefaultCategories() {
     {
       id: 'cat_hygiene',
       name: 'Hygiene',
-      icon: '🧼',
+      icon: '\u{1F9FC}',
       color: '#3B82F6',
       items: [
         { id: 'bh_5', name: 'Brushed teeth (morning)', dollarValue: 1, frequency: 'daily' },
@@ -47,7 +52,7 @@ export function getDefaultCategories() {
     {
       id: 'cat_discipline',
       name: 'Discipline',
-      icon: '⭐',
+      icon: '\u{2B50}',
       color: '#F59E0B',
       items: [
         { id: 'bh_9', name: 'No screen time tantrum', dollarValue: 3, frequency: 'daily' },
@@ -60,7 +65,7 @@ export function getDefaultCategories() {
     {
       id: 'cat_learning',
       name: 'Learning',
-      icon: '📚',
+      icon: '\u{1F4DA}',
       color: '#7C3AED',
       items: [
         { id: 'bh_14', name: 'Read for 20 minutes', dollarValue: 3, frequency: 'daily' },
@@ -72,7 +77,7 @@ export function getDefaultCategories() {
     {
       id: 'cat_bonus',
       name: 'Bonus',
-      icon: '🌟',
+      icon: '\u{1F31F}',
       color: '#EC4899',
       items: [
         { id: 'bh_18', name: 'Helped someone', dollarValue: 5, frequency: 'anytime' },
@@ -95,14 +100,28 @@ export function loadData() {
 
 export function saveData(data) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const json = JSON.stringify(data);
+    // Check storage quota (~5MB limit)
+    const sizeKB = new Blob([json]).size / 1024;
+    if (sizeKB > 4500) {
+      console.warn('Kidzy: Storage approaching limit (' + sizeKB.toFixed(0) + 'KB). Consider exporting data.');
+    }
+    localStorage.setItem(STORAGE_KEY, json);
   } catch (e) {
     console.error('Failed to save data:', e);
+    if (e.name === 'QuotaExceededError') {
+      alert('Storage is full! Please export your data from Settings to avoid data loss.');
+    }
   }
 }
 
+// Secure ID generation using crypto API
 export function generateId(prefix = 'id') {
-  return prefix + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `${prefix}_${crypto.randomUUID()}`;
+  }
+  // Fallback for older browsers
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 export function getToday() {
@@ -132,4 +151,93 @@ export function getDaysBetween(date1, date2) {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
   return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+}
+
+// PIN hashing using Web Crypto API (SHA-256)
+export async function hashPin(pin) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin + '_kidzy_salt_v1');
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function verifyPin(pin, hashedPin) {
+  // Support legacy plaintext PINs (auto-migrate on successful login)
+  if (hashedPin.length < 10) {
+    return pin === hashedPin;
+  }
+  const hash = await hashPin(pin);
+  return hash === hashedPin;
+}
+
+// Rate limiting for login attempts
+export function getLockoutState() {
+  try {
+    const raw = localStorage.getItem(LOCKOUT_KEY);
+    if (!raw) return { attempts: 0, lockedUntil: null };
+    return JSON.parse(raw);
+  } catch {
+    return { attempts: 0, lockedUntil: null };
+  }
+}
+
+export function recordFailedAttempt() {
+  const state = getLockoutState();
+  state.attempts += 1;
+  if (state.attempts >= 5) {
+    // Exponential backoff: 30s, 60s, 120s, 240s...
+    const lockSeconds = 30 * Math.pow(2, Math.min(state.attempts - 5, 5));
+    state.lockedUntil = Date.now() + lockSeconds * 1000;
+  }
+  localStorage.setItem(LOCKOUT_KEY, JSON.stringify(state));
+  return state;
+}
+
+export function resetLockout() {
+  localStorage.removeItem(LOCKOUT_KEY);
+}
+
+export function isLockedOut() {
+  const state = getLockoutState();
+  if (state.lockedUntil && Date.now() < state.lockedUntil) {
+    return Math.ceil((state.lockedUntil - Date.now()) / 1000);
+  }
+  return false;
+}
+
+// Data export/import
+export function exportData() {
+  const data = loadData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `kidzy-backup-${getToday()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function importData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        // Basic validation
+        if (!data.family && !data.kids && !data.transactions) {
+          reject(new Error('Invalid Kidzy backup file'));
+          return;
+        }
+        const merged = { ...defaultData(), ...data };
+        saveData(merged);
+        resolve(merged);
+      } catch (err) {
+        reject(new Error('Failed to parse backup file'));
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsText(file);
+  });
 }

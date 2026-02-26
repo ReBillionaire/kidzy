@@ -43,6 +43,22 @@ export function getKidDeductionsThisWeek(kidId, transactions) {
     .reduce((sum, t) => sum + t.amount, 0);
 }
 
+export function getKidEarningsLastWeek(kidId, transactions) {
+  const now = new Date();
+  const day = now.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const thisMonday = new Date(now);
+  thisMonday.setDate(now.getDate() + mondayOffset);
+  thisMonday.setHours(0, 0, 0, 0);
+
+  const lastMonday = new Date(thisMonday);
+  lastMonday.setDate(lastMonday.getDate() - 7);
+
+  return transactions
+    .filter(t => t.kidId === kidId && t.type === 'earn' && new Date(t.timestamp) >= lastMonday && new Date(t.timestamp) < thisMonday)
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
 export function getStreak(kidId, transactions) {
   const today = new Date();
   let streak = 0;
@@ -62,90 +78,12 @@ export function getStreak(kidId, transactions) {
   return streak;
 }
 
-// Check if a specific daily behavior was already completed today for a kid
-export function isBehaviorCompletedToday(kidId, behaviorId, transactions) {
-  const today = new Date().toISOString().split('T')[0];
-  return transactions.some(
-    t => t.kidId === kidId && t.behaviorId === behaviorId && t.type === 'earn' && t.timestamp.startsWith(today)
-  );
-}
-
 export function getCompletedBehaviorsToday(kidId, transactions) {
   const today = new Date().toISOString().split('T')[0];
   return transactions
     .filter(t => t.kidId === kidId && t.type === 'earn' && t.timestamp.startsWith(today))
     .map(t => t.behaviorId)
     .filter(Boolean);
-}
-
-// Get the daily high — best single-day earnings ever for a kid
-export function getDailyHighRecord(kidId, transactions) {
-  const earns = transactions.filter(t => t.kidId === kidId && t.type === 'earn');
-  if (earns.length === 0) return { amount: 0, date: null };
-
-  const byDate = {};
-  earns.forEach(t => {
-    const date = t.timestamp.split('T')[0];
-    byDate[date] = (byDate[date] || 0) + t.amount;
-  });
-
-  let bestDate = null;
-  let bestAmount = 0;
-  Object.entries(byDate).forEach(([date, amount]) => {
-    if (amount > bestAmount) {
-      bestAmount = amount;
-      bestDate = date;
-    }
-  });
-
-  return { amount: bestAmount, date: bestDate };
-}
-
-// Check if today's earnings is a new daily high
-export function isTodayNewDailyHigh(kidId, transactions) {
-  const todayEarnings = getKidEarningsToday(kidId, transactions);
-  if (todayEarnings === 0) return false;
-
-  const today = new Date().toISOString().split('T')[0];
-  const earns = transactions.filter(t => t.kidId === kidId && t.type === 'earn');
-  const byDate = {};
-  earns.forEach(t => {
-    const date = t.timestamp.split('T')[0];
-    byDate[date] = (byDate[date] || 0) + t.amount;
-  });
-
-  // Check if today is strictly the highest
-  for (const [date, amount] of Object.entries(byDate)) {
-    if (date !== today && amount >= todayEarnings) return false;
-  }
-  return true;
-}
-
-// Get longest streak ever
-export function getLongestStreak(kidId, transactions) {
-  const earns = transactions.filter(t => t.kidId === kidId && t.type === 'earn');
-  if (earns.length === 0) return 0;
-
-  const dates = new Set(earns.map(t => t.timestamp.split('T')[0]));
-  const sortedDates = [...dates].sort();
-
-  let longest = 1;
-  let current = 1;
-
-  for (let i = 1; i < sortedDates.length; i++) {
-    const prev = new Date(sortedDates[i - 1]);
-    const curr = new Date(sortedDates[i]);
-    const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 1) {
-      current++;
-      longest = Math.max(longest, current);
-    } else {
-      current = 1;
-    }
-  }
-
-  return longest;
 }
 
 export function getWeeklyLeaderboard(kids, transactions) {
@@ -158,6 +96,17 @@ export function getWeeklyLeaderboard(kids, transactions) {
       streak: getStreak(kid.id, transactions),
     }))
     .sort((a, b) => b.weeklyNet - a.weeklyNet);
+}
+
+export function getMostImprovedLeaderboard(kids, transactions) {
+  return kids
+    .map(kid => {
+      const thisWeek = getKidEarningsThisWeek(kid.id, transactions);
+      const lastWeek = getKidEarningsLastWeek(kid.id, transactions);
+      const improvement = lastWeek > 0 ? ((thisWeek - lastWeek) / lastWeek) * 100 : (thisWeek > 0 ? 100 : 0);
+      return { ...kid, thisWeek, lastWeek, improvement: Math.round(improvement) };
+    })
+    .sort((a, b) => b.improvement - a.improvement);
 }
 
 export function getWishListProgress(wishItem, kidBalance) {
@@ -185,93 +134,52 @@ export function compressImage(file, maxWidth = 300, quality = 0.7) {
   });
 }
 
-// Variable Reward Multiplier — 80% 1x, 15% 2x, 5% 3x
+// Variable reward multiplier (80% 1x, 15% 2x, 5% 3x)
 export function rollMultiplier() {
-  const roll = Math.random();
-  if (roll < 0.05) return { multiplier: 3, label: 'TRIPLE BONUS!', emoji: '🌈', color: 'from-purple-500 to-pink-500' };
-  if (roll < 0.20) return { multiplier: 2, label: 'DOUBLE BONUS!', emoji: '⚡', color: 'from-amber-400 to-orange-500' };
-  return { multiplier: 1, label: null, emoji: null, color: null };
+  const roll = Math.random() * 100;
+  if (roll < 5) return { multiplier: 3, label: 'TRIPLE BONUS!' };
+  if (roll < 20) return { multiplier: 2, label: 'DOUBLE BONUS!' };
+  return { multiplier: 1, label: '' };
 }
 
-// Get last week's earnings for a kid (Monday to Sunday before current week)
-export function getKidEarningsLastWeek(kidId, transactions) {
-  const now = new Date();
-  const day = now.getDay();
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-  const thisMonday = new Date(now);
-  thisMonday.setDate(now.getDate() + mondayOffset);
-  thisMonday.setHours(0, 0, 0, 0);
-
-  const lastMonday = new Date(thisMonday);
-  lastMonday.setDate(lastMonday.getDate() - 7);
-
-  return transactions
-    .filter(t => {
-      if (t.kidId !== kidId || t.type !== 'earn') return false;
-      const d = new Date(t.timestamp);
-      return d >= lastMonday && d < thisMonday;
-    })
-    .reduce((sum, t) => sum + t.amount, 0);
-}
-
-// Most Improved leaderboard — week-over-week improvement
-export function getMostImprovedLeaderboard(kids, transactions) {
-  return kids
-    .map(kid => {
-      const thisWeek = getKidEarningsThisWeek(kid.id, transactions);
-      const lastWeek = getKidEarningsLastWeek(kid.id, transactions);
-      const improvement = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : (thisWeek > 0 ? 100 : 0);
-      return { ...kid, thisWeek, lastWeek, improvement };
-    })
-    .sort((a, b) => b.improvement - a.improvement);
-}
-
-// Achievements system
+// Achievement definitions
 export function getAchievements(kidId, transactions) {
-  const totalEarned = transactions
-    .filter(t => t.kidId === kidId && t.type === 'earn')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const totalEarned = transactions.filter(t => t.kidId === kidId && t.type === 'earn').reduce((s, t) => s + t.amount, 0);
+  const totalTx = transactions.filter(t => t.kidId === kidId && t.type === 'earn').length;
   const streak = getStreak(kidId, transactions);
-  const longestStreak = getLongestStreak(kidId, transactions);
-  const totalTransactions = transactions.filter(t => t.kidId === kidId && t.type === 'earn').length;
+  const categories = new Set(transactions.filter(t => t.kidId === kidId && t.type === 'earn' && t.category).map(t => t.category));
   const multiplierHits = transactions.filter(t => t.kidId === kidId && t.multiplier && t.multiplier > 1).length;
 
-  const all = [
-    // Earning milestones
-    { id: 'earn_10', name: 'First Steps', desc: 'Earned $10 K$', icon: '👣', unlocked: totalEarned >= 10, progress: Math.min(totalEarned, 10), target: 10 },
-    { id: 'earn_50', name: 'Rising Star', desc: 'Earned $50 K$', icon: '⭐', unlocked: totalEarned >= 50, progress: Math.min(totalEarned, 50), target: 50 },
-    { id: 'earn_100', name: 'Century Club', desc: 'Earned $100 K$', icon: '💯', unlocked: totalEarned >= 100, progress: Math.min(totalEarned, 100), target: 100 },
-    { id: 'earn_500', name: 'K$ Mogul', desc: 'Earned $500 K$', icon: '💰', unlocked: totalEarned >= 500, progress: Math.min(totalEarned, 500), target: 500 },
-    { id: 'earn_1000', name: 'Kidzy Legend', desc: 'Earned $1,000 K$', icon: '👑', unlocked: totalEarned >= 1000, progress: Math.min(totalEarned, 1000), target: 1000 },
-    // Streak milestones
-    { id: 'streak_3', name: 'Hat Trick', desc: '3-day streak', icon: '🔥', unlocked: longestStreak >= 3, progress: Math.min(longestStreak, 3), target: 3 },
-    { id: 'streak_7', name: 'Week Warrior', desc: '7-day streak', icon: '⚔️', unlocked: longestStreak >= 7, progress: Math.min(longestStreak, 7), target: 7 },
-    { id: 'streak_14', name: 'Fortnight Hero', desc: '14-day streak', icon: '🦸', unlocked: longestStreak >= 14, progress: Math.min(longestStreak, 14), target: 14 },
-    { id: 'streak_30', name: 'Monthly Master', desc: '30-day streak', icon: '🏅', unlocked: longestStreak >= 30, progress: Math.min(longestStreak, 30), target: 30 },
-    // Activity milestones
-    { id: 'tasks_10', name: 'Getting Started', desc: 'Completed 10 tasks', icon: '📋', unlocked: totalTransactions >= 10, progress: Math.min(totalTransactions, 10), target: 10 },
-    { id: 'tasks_50', name: 'Task Master', desc: 'Completed 50 tasks', icon: '🎯', unlocked: totalTransactions >= 50, progress: Math.min(totalTransactions, 50), target: 50 },
-    { id: 'tasks_100', name: 'Habit Builder', desc: 'Completed 100 tasks', icon: '🏗️', unlocked: totalTransactions >= 100, progress: Math.min(totalTransactions, 100), target: 100 },
-    // Bonus multiplier milestones
-    { id: 'multi_1', name: 'Lucky Day', desc: 'Got your first bonus multiplier', icon: '🍀', unlocked: multiplierHits >= 1, progress: Math.min(multiplierHits, 1), target: 1 },
-    { id: 'multi_5', name: 'Fortune Finder', desc: 'Got 5 bonus multipliers', icon: '🎰', unlocked: multiplierHits >= 5, progress: Math.min(multiplierHits, 5), target: 5 },
+  return [
+    { id: 'first_earn', name: 'First Steps', icon: '\u{1F476}', desc: 'Earn your first K$', progress: Math.min(totalTx, 1), target: 1, category: 'Earning' },
+    { id: 'earn_50', name: 'Money Maker', icon: '\u{1F4B5}', desc: 'Earn 50 K$ total', progress: Math.min(totalEarned, 50), target: 50, category: 'Earning' },
+    { id: 'earn_200', name: 'Rich Kid', icon: '\u{1F4B0}', desc: 'Earn 200 K$ total', progress: Math.min(totalEarned, 200), target: 200, category: 'Earning' },
+    { id: 'earn_500', name: 'Millionaire', icon: '\u{1F451}', desc: 'Earn 500 K$ total', progress: Math.min(totalEarned, 500), target: 500, category: 'Earning' },
+    { id: 'streak_3', name: 'On a Roll', icon: '\u{1F525}', desc: '3-day streak', progress: Math.min(streak, 3), target: 3, category: 'Streak' },
+    { id: 'streak_7', name: 'Week Warrior', icon: '\u{26A1}', desc: '7-day streak', progress: Math.min(streak, 7), target: 7, category: 'Streak' },
+    { id: 'streak_30', name: 'Unstoppable', icon: '\u{1F3C6}', desc: '30-day streak', progress: Math.min(streak, 30), target: 30, category: 'Streak' },
+    { id: 'tasks_10', name: 'Go Getter', icon: '\u{1F3AF}', desc: 'Complete 10 tasks', progress: Math.min(totalTx, 10), target: 10, category: 'Activity' },
+    { id: 'tasks_50', name: 'Super Star', icon: '\u{2B50}', desc: 'Complete 50 tasks', progress: Math.min(totalTx, 50), target: 50, category: 'Activity' },
+    { id: 'tasks_100', name: 'Legend', icon: '\u{1F31F}', desc: 'Complete 100 tasks', progress: Math.min(totalTx, 100), target: 100, category: 'Activity' },
+    { id: 'cat_3', name: 'Explorer', icon: '\u{1F9ED}', desc: 'Earn in 3 categories', progress: Math.min(categories.size, 3), target: 3, category: 'Activity' },
+    { id: 'cat_5', name: 'All-Rounder', icon: '\u{1F308}', desc: 'Earn in all 5 categories', progress: Math.min(categories.size, 5), target: 5, category: 'Activity' },
+    { id: 'multi_1', name: 'Lucky', icon: '\u{1F340}', desc: 'Get a bonus multiplier', progress: Math.min(multiplierHits, 1), target: 1, category: 'Multiplier' },
+    { id: 'multi_5', name: 'Fortune Favors', icon: '\u{1F48E}', desc: 'Get 5 bonus multipliers', progress: Math.min(multiplierHits, 5), target: 5, category: 'Multiplier' },
   ];
-
-  return { all, unlocked: all.filter(a => a.unlocked).length, total: all.length };
 }
 
 export function getRandomEncouragement() {
   const messages = [
-    "Amazing job! Keep it up! 🎉",
-    "You're a superstar! ⭐",
-    "Way to go, champ! 🏆",
-    "That's incredible! 🚀",
-    "You're crushing it! 💪",
-    "So proud of you! 🌟",
-    "Fantastic work! 🎊",
-    "You're on fire! 🔥",
-    "Keep shining bright! ✨",
-    "Awesome sauce! 🎯",
+    "Amazing job! Keep it up! \u{1F389}",
+    "You're a superstar! \u{2B50}",
+    "Way to go, champ! \u{1F3C6}",
+    "That's incredible! \u{1F680}",
+    "You're crushing it! \u{1F4AA}",
+    "So proud of you! \u{1F31F}",
+    "Fantastic work! \u{1F38A}",
+    "You're on fire! \u{1F525}",
+    "Keep shining bright! \u{2728}",
+    "Awesome sauce! \u{1F3AF}",
   ];
   return messages[Math.floor(Math.random() * messages.length)];
 }
