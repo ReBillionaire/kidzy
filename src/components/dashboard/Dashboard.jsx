@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
-import { getKidBalance, getKidEarningsToday, getStreak, getKidEarningsThisWeek } from '../../utils/helpers';
+import { getKidBalance, getKidEarningsToday, getStreak, getKidEarningsThisWeek, getDailyHighRecord, isTodayNewDailyHigh, getLongestStreak } from '../../utils/helpers';
 import KidCard from './KidCard';
 import AddKidModal from './AddKidModal';
 import QuickEarnModal from '../behaviors/QuickEarnModal';
@@ -102,19 +102,25 @@ export default function Dashboard({ onNavigate }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {state.kids.map(kid => (
-              <KidCard
-                key={kid.id}
-                kid={kid}
-                balance={getKidBalance(kid.id, state.transactions)}
-                todayEarnings={getKidEarningsToday(kid.id, state.transactions)}
-                weeklyEarnings={getKidEarningsThisWeek(kid.id, state.transactions)}
-                streak={getStreak(kid.id, state.transactions)}
-                onEarn={() => setShowQuickEarn(kid.id)}
-                onDeduct={() => setShowDeduct(kid.id)}
-                onViewRewards={() => onNavigate('rewards', kid.id)}
-              />
-            ))}
+            {state.kids.map(kid => {
+              const dailyHighData = getDailyHighRecord(kid.id, state.transactions);
+              return (
+                <KidCard
+                  key={kid.id}
+                  kid={kid}
+                  balance={getKidBalance(kid.id, state.transactions)}
+                  todayEarnings={getKidEarningsToday(kid.id, state.transactions)}
+                  weeklyEarnings={getKidEarningsThisWeek(kid.id, state.transactions)}
+                  streak={getStreak(kid.id, state.transactions)}
+                  longestStreak={getLongestStreak(kid.id, state.transactions)}
+                  dailyHigh={dailyHighData.amount}
+                  isNewHigh={isTodayNewDailyHigh(kid.id, state.transactions)}
+                  onEarn={() => setShowQuickEarn(kid.id)}
+                  onDeduct={() => setShowDeduct(kid.id)}
+                  onViewRewards={() => onNavigate('rewards', kid.id)}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -129,4 +135,4 @@ export default function Dashboard({ onNavigate }) {
       )}
     </div>
   );
-      }
+}
