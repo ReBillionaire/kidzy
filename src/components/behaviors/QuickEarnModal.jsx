@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
-import { getCompletedBehaviorsToday, getRandomEncouragement } from '../../utils/helpers';
+import { getCompletedBehaviorsToday, getRandomEncouragement, isBehaviorCompletedToday } from '../../utils/helpers';
 import Modal from '../shared/Modal';
 import ConfettiEffect from '../shared/ConfettiEffect';
 import DollarBadge from '../shared/DollarBadge';
-import { Check, Plus, Sparkles } from 'lucide-react';
+import { Check, Plus, Sparkles, Lock } from 'lucide-react';
 
 export default function QuickEarnModal({ kidId, isOpen, onClose }) {
   const state = useKidzy();
@@ -19,6 +19,11 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
   const completedToday = getCompletedBehaviorsToday(kidId, state.transactions);
 
   const handleEarn = (item, categoryName) => {
+    // Block duplicate daily behaviors
+    if (item.frequency === 'daily' && isBehaviorCompletedToday(kidId, item.id, state.transactions)) {
+      return; // Already done today
+    }
+
     dispatch({
       type: 'ADD_TRANSACTION',
       payload: {
@@ -79,21 +84,37 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
               <div className="space-y-1.5">
                 {cat.items.map(item => {
                   const isDone = completedToday.includes(item.id);
+                  const isDaily = item.frequency === 'daily';
+                  const isLocked = isDaily && isDone;
                   return (
                     <button
                       key={item.id}
-                      onClick={() => handleEarn(item, cat.name)}
+                      onClick={() => !isLocked && handleEarn(item, cat.name)}
+                      disabled={isLocked}
                       className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left ${
-                        isDone
+                        isLocked
+                          ? 'bg-green-50 border-green-200 opacity-75 cursor-not-allowed'
+                          : isDone
                           ? 'bg-green-50 border-green-200'
                           : 'bg-white border-gray-100 hover:border-kidzy-purple/30 hover:bg-purple-50/50'
                       }`}
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {isDone && <Check size={16} className="text-green-500 flex-shrink-0" />}
+                        {isLocked ? (
+                          <Check size={16} className="text-green-500 flex-shrink-0" />
+                        ) : isDone ? (
+                          <Check size={16} className="text-green-500 flex-shrink-0" />
+                        ) : null}
                         <span className={`text-sm ${isDone ? 'text-green-700' : 'text-kidzy-dark'}`}>{item.name}</span>
+                        {isLocked && (
+                          <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-medium ml-1">Done today</span>
+                        )}
                       </div>
-                      <DollarBadge amount={item.dollarValue} size="sm" showPlus />
+                      {isLocked ? (
+                        <Lock size={14} className="text-green-400 flex-shrink-0" />
+                      ) : (
+                        <DollarBadge amount={item.dollarValue} size="sm" showPlus />
+                      )}
                     </button>
                   );
                 })}
@@ -145,4 +166,4 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
       </Modal>
     </>
   );
-      }
+}
