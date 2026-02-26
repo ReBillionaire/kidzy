@@ -31,10 +31,10 @@ function kidzyReducer(state, action) {
       }
       case 'SET_CURRENT_PARENT': {
         if (!validateId(action.payload)) return state;
-        return { ...state, currentParentId: action.payload };
+        return { ...state, currentParentId: action.payload, loggedOut: false };
       }
       case 'LOGOUT': {
-        return { ...state, currentParentId: null, kidMode: null };
+        return { ...state, currentParentId: null, kidMode: null, loggedOut: true };
       }
       case 'SET_KID_MODE': {
         if (action.payload && !validateId(action.payload)) return state;
@@ -190,12 +190,12 @@ export function KidzyProvider({ children }) {
     if (state) saveData(state);
   }, [state]);
 
-  // Set currentParentId after family setup
+  // Auto-login after initial family setup (not after explicit logout)
   useEffect(() => {
-    if (state?.family && state.parents.length > 0 && !state.currentParentId) {
+    if (state?.family && state.parents.length > 0 && !state.currentParentId && !state.loggedOut) {
       dispatch({ type: 'SET_CURRENT_PARENT', payload: state.parents[0].id });
     }
-  }, [state?.family, state?.parents, state?.currentParentId]);
+  }, [state?.family, state?.parents, state?.currentParentId, state?.loggedOut]);
 
   return (
     <KidzyContext.Provider value={state}>
