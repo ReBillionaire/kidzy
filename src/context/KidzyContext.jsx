@@ -11,7 +11,7 @@ function kidzyReducer(state, action) {
       return {
         ...state,
         family: { id: generateId('fam'), name: action.payload.familyName, pin: action.payload.pin, createdAt: new Date().toISOString() },
-        parents: [{ id: generateId('parent'), name: action.payload.parentName, avatar: action.payload.avatar || null, role: 'admin', createdAt: new Date().toISOString() }],
+        parents: [{ id: generateId('parent'), name: action.payload.parentName, avatar: action.payload.avatar || null, email: action.payload.email || null, googleUid: action.payload.googleUid || null, role: 'admin', createdAt: new Date().toISOString() }],
         currentParentId: null, // set after
       };
     }
