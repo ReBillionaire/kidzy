@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import Modal from '../shared/Modal';
 import Avatar from '../shared/Avatar';
-import { ArrowLeft, UserPlus, Edit3, Trash2, Users, Baby, Shield, Palette, ChevronRight } from 'lucide-react';
+import { ArrowLeft, UserPlus, Edit3, Trash2, Users, Baby, Shield, Palette, ChevronRight, Share2, Copy, Check, Link2 } from 'lucide-react';
 
 export default function SettingsPage({ onBack }) {
   const state = useKidzy();
   const dispatch = useKidzyDispatch();
   const [showAddParent, setShowAddParent] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [editingKid, setEditingKid] = useState(null);
 
   return (
@@ -26,9 +27,14 @@ export default function SettingsPage({ onBack }) {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-display font-bold flex items-center gap-2"><Users size={20} className="text-kidzy-teal" /> Parents</h2>
-            <button onClick={() => setShowAddParent(true)} className="text-sm font-semibold text-kidzy-teal flex items-center gap-1">
-              <UserPlus size={16} /> Add
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setShowInvite(true)} className="text-sm font-semibold text-kidzy-purple flex items-center gap-1">
+                <Share2 size={16} /> Invite
+              </button>
+              <button onClick={() => setShowAddParent(true)} className="text-sm font-semibold text-kidzy-teal flex items-center gap-1">
+                <UserPlus size={16} /> Add
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             {state.parents.map(parent => (
@@ -110,7 +116,87 @@ export default function SettingsPage({ onBack }) {
       </div>
 
       <AddParentModal isOpen={showAddParent} onClose={() => setShowAddParent(false)} />
+      <InviteParentModal isOpen={showInvite} onClose={() => setShowInvite(false)} familyName={state.family?.name} familyPin={state.family?.pin} />
     </div>
+  );
+}
+
+function InviteParentModal({ isOpen, onClose, familyName, familyPin }) {
+  const [copied, setCopied] = useState(false);
+
+  const appUrl = window.location.origin;
+  const inviteMessage = `Join our family "${familyName}" on Kidzy!\n\n1. Open ${appUrl}\n2. Use Family PIN: ${familyPin}\n\nKidzy helps us track and reward great behavior for our kids!`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteMessage);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = inviteMessage;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join ${familyName} on Kidzy`,
+          text: inviteMessage,
+          url: appUrl,
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') handleCopy();
+      }
+    } else {
+      handleCopy();
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Invite a Parent">
+      <div className="text-center mb-4">
+        <div className="w-16 h-16 bg-kidzy-purple/10 rounded-full flex items-center justify-center mx-auto mb-3">
+          <Share2 size={28} className="text-kidzy-purple" />
+        </div>
+        <p className="text-sm text-kidzy-gray">Invite another parent or caregiver to join your family on Kidzy. They'll use the same Family PIN to log in.</p>
+      </div>
+
+      <div className="bg-gray-50 rounded-xl p-4 mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Link2 size={14} className="text-kidzy-gray" />
+          <span className="text-xs font-semibold text-kidzy-gray uppercase tracking-wide">Invite Message Preview</span>
+        </div>
+        <p className="text-sm text-kidzy-dark whitespace-pre-line leading-relaxed">{inviteMessage}</p>
+      </div>
+
+      <div className="space-y-2">
+        <button
+          onClick={handleShare}
+          className="w-full bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 hover:shadow-xl transition-all"
+        >
+          <Share2 size={18} /> Share Invite
+        </button>
+        <button
+          onClick={handleCopy}
+          className={`w-full font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+            copied
+              ? 'bg-green-50 text-green-700 border-2 border-green-200'
+              : 'bg-white text-kidzy-dark border-2 border-gray-200 hover:border-kidzy-purple/30'
+          }`}
+        >
+          {copied ? <><Check size={18} /> Copied!</> : <><Copy size={18} /> Copy Invite Message</>}
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -142,4 +228,4 @@ function AddParentModal({ isOpen, onClose }) {
       </button>
     </Modal>
   );
-        }
+}
