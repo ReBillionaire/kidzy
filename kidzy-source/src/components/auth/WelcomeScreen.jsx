@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Star, Users, Trophy, ArrowRight, Sparkles } from 'lucide-react';
 import { useKidzyDispatch } from '../../context/KidzyContext';
+import { hashPin } from '../../utils/storage';
 import Avatar from '../shared/Avatar';
 
 export default function WelcomeScreen() {
@@ -11,11 +12,12 @@ export default function WelcomeScreen() {
   const [parentName, setParentName] = useState('');
   const [parentAvatar, setParentAvatar] = useState(null);
 
-  const handleSetup = () => {
+  const handleSetup = async () => {
     if (!familyName.trim() || !parentName.trim() || pin.length < 4) return;
+    const hashedPin = await hashPin(pin);
     dispatch({
       type: 'SETUP_FAMILY',
-      payload: { familyName: familyName.trim(), pin, parentName: parentName.trim(), avatar: parentAvatar }
+      payload: { familyName: familyName.trim(), pin: hashedPin, parentName: parentName.trim(), avatar: parentAvatar }
     });
   };
 
@@ -23,7 +25,7 @@ export default function WelcomeScreen() {
     return (
       <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6 text-white">
         <div className="animate-bounce-in text-center max-w-md">
-          <div className="text-7xl mb-4">⭐</div>
+          <div className="text-7xl mb-4">{'\u{2B50}'}</div>
           <h1 className="text-5xl font-display font-bold mb-3">Kidzy</h1>
           <p className="text-xl opacity-90 mb-8 font-display">Make Good Habits Fun!</p>
 
@@ -56,7 +58,7 @@ export default function WelcomeScreen() {
       <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
         <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md animate-slide-up">
           <div className="text-center mb-6">
-            <div className="text-4xl mb-2">👨‍👩‍👧‍👦</div>
+            <div className="text-4xl mb-2">{'\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}\u{200D}\u{1F466}'}</div>
             <h2 className="text-2xl font-display font-bold text-kidzy-dark">Create Your Family</h2>
             <p className="text-kidzy-gray mt-1">Let's set up your Kidzy family account</p>
           </div>
@@ -69,6 +71,7 @@ export default function WelcomeScreen() {
                 placeholder="e.g., The Johnsons"
                 value={familyName}
                 onChange={e => setFamilyName(e.target.value)}
+                maxLength={50}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none text-lg transition-colors"
               />
             </div>
@@ -76,13 +79,13 @@ export default function WelcomeScreen() {
               <label className="block text-sm font-semibold text-kidzy-dark mb-1">Family PIN (4+ digits)</label>
               <input
                 type="password"
-                placeholder="••••"
+                placeholder={'\u{2022}\u{2022}\u{2022}\u{2022}'}
                 value={pin}
                 onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none text-lg tracking-[0.5em] text-center transition-colors"
                 inputMode="numeric"
               />
-              <p className="text-xs text-kidzy-gray mt-1">Used to protect parent access</p>
+              <p className="text-xs text-kidzy-gray mt-1">Used to protect parent access. PIN is stored securely.</p>
             </div>
           </div>
 
@@ -102,7 +105,7 @@ export default function WelcomeScreen() {
     <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
       <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md animate-slide-up">
         <div className="text-center mb-6">
-          <div className="text-4xl mb-2">👤</div>
+          <div className="text-4xl mb-2">{'\u{1F464}'}</div>
           <h2 className="text-2xl font-display font-bold text-kidzy-dark">Your Profile</h2>
           <p className="text-kidzy-gray mt-1">Set up the first parent account</p>
         </div>
@@ -118,6 +121,7 @@ export default function WelcomeScreen() {
             placeholder="e.g., Mom, Dad, Alex"
             value={parentName}
             onChange={e => setParentName(e.target.value)}
+            maxLength={50}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none text-lg transition-colors"
           />
         </div>

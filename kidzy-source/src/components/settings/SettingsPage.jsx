@@ -1,14 +1,34 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
+import { exportData, importData } from '../../utils/storage';
 import Modal from '../shared/Modal';
 import Avatar from '../shared/Avatar';
-import { ArrowLeft, UserPlus, Edit3, Trash2, Users, Baby, Shield, Palette, ChevronRight } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone } from 'lucide-react';
 
 export default function SettingsPage({ onBack }) {
   const state = useKidzy();
   const dispatch = useKidzyDispatch();
   const [showAddParent, setShowAddParent] = useState(false);
-  const [editingKid, setEditingKid] = useState(null);
+  const [importStatus, setImportStatus] = useState(null);
+  const fileRef = useRef(null);
+
+  const soundEnabled = state.settings?.soundEnabled !== false;
+  const hapticEnabled = state.settings?.hapticEnabled !== false;
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const data = await importData(file);
+      dispatch({ type: 'LOAD_DATA', payload: data });
+      setImportStatus('success');
+      setTimeout(() => setImportStatus(null), 3000);
+    } catch (err) {
+      setImportStatus('error');
+      setTimeout(() => setImportStatus(null), 3000);
+    }
+    e.target.value = '';
+  };
 
   return (
     <div className="pb-24">
@@ -69,6 +89,45 @@ export default function SettingsPage({ onBack }) {
           </div>
         </div>
 
+        {/* Sound & Haptic Settings */}
+        <div>
+          <h2 className="text-lg font-display font-bold flex items-center gap-2 mb-3">
+            <Volume2 size={20} className="text-kidzy-blue" /> Sounds & Feedback
+          </h2>
+          <div className="space-y-2">
+            <div className="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border border-gray-100">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                {soundEnabled ? <Volume2 size={20} className="text-kidzy-blue" /> : <VolumeX size={20} className="text-gray-400" />}
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm">Sound Effects</p>
+                <p className="text-xs text-kidzy-gray">Coin sounds when earning K$</p>
+              </div>
+              <button
+                onClick={() => dispatch({ type: 'UPDATE_SETTINGS', payload: { soundEnabled: !soundEnabled } })}
+                className={`w-12 h-7 rounded-full transition-colors relative ${soundEnabled ? 'bg-kidzy-blue' : 'bg-gray-300'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full shadow absolute top-1 transition-transform ${soundEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            <div className="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border border-gray-100">
+              <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                <Smartphone size={20} className={hapticEnabled ? 'text-kidzy-purple' : 'text-gray-400'} />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm">Haptic Feedback</p>
+                <p className="text-xs text-kidzy-gray">Vibrations on actions</p>
+              </div>
+              <button
+                onClick={() => dispatch({ type: 'UPDATE_SETTINGS', payload: { hapticEnabled: !hapticEnabled } })}
+                className={`w-12 h-7 rounded-full transition-colors relative ${hapticEnabled ? 'bg-kidzy-purple' : 'bg-gray-300'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full shadow absolute top-1 transition-transform ${hapticEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Behavior Settings */}
         <div>
           <h2 className="text-lg font-display font-bold flex items-center gap-2 mb-3"><Palette size={20} className="text-kidzy-purple" /> Behavior Categories</h2>
@@ -85,21 +144,46 @@ export default function SettingsPage({ onBack }) {
           </div>
         </div>
 
-        {/* Account Info */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <h3 className="font-display font-bold flex items-center gap-2 mb-2"><Shield size={18} className="text-kidzy-gray" /> Account</h3>
-          <p className="text-sm text-kidzy-gray">Family PIN protects parent access. Kids can view their dashboard but only parents can earn/deduct K$.</p>
+        {/* Data Backup */}
+        <div>
+          <h2 className="text-lg font-display font-bold flex items-center gap-2 mb-3"><Shield size={20} className="text-kidzy-gray" /> Data Backup</h2>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 space-y-3">
+            <p className="text-sm text-kidzy-gray">Export your family data as a backup file, or restore from a previous backup.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={exportData}
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-kidzy-teal to-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm"
+              >
+                <Download size={16} /> Export
+              </button>
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-kidzy-blue to-indigo-500 text-white font-bold py-2.5 rounded-xl text-sm"
+              >
+                <Upload size={16} /> Import
+              </button>
+              <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+            </div>
+            {importStatus === 'success' && (
+              <p className="text-green-600 text-sm text-center font-medium">Data restored successfully!</p>
+            )}
+            {importStatus === 'error' && (
+              <p className="text-red-500 text-sm text-center font-medium">Failed to restore. Invalid backup file.</p>
+            )}
+          </div>
         </div>
 
         {/* Danger Zone */}
         <div className="bg-red-50 rounded-xl p-4 border border-red-200">
           <h3 className="font-bold text-red-700 mb-2">Reset Everything</h3>
-          <p className="text-red-600 text-sm mb-3">This will permanently delete all family data.</p>
+          <p className="text-red-600 text-sm mb-3">This will permanently delete all family data. Export a backup first!</p>
           <button
             onClick={() => {
-              if (confirm('Are you sure? This cannot be undone!')) {
-                localStorage.clear();
-                window.location.reload();
+              if (confirm('Are you sure? This cannot be undone! Export a backup first.')) {
+                if (confirm('Last chance! All data will be permanently deleted.')) {
+                  localStorage.clear();
+                  window.location.reload();
+                }
               }
             }}
             className="bg-red-500 text-white font-bold py-2 px-4 rounded-xl text-sm"
@@ -133,7 +217,7 @@ function AddParentModal({ isOpen, onClose }) {
       </div>
       <div>
         <label className="block text-sm font-semibold mb-1">Name</label>
-        <input type="text" placeholder="e.g., Mom, Dad, Alex" value={name} onChange={e => setName(e.target.value)}
+        <input type="text" placeholder="e.g., Mom, Dad, Alex" value={name} onChange={e => setName(e.target.value)} maxLength={50}
           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-teal focus:outline-none text-lg" />
       </div>
       <button onClick={handleAdd} disabled={!name.trim()}

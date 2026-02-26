@@ -1,23 +1,35 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import { getKidBalance, getKidEarningsToday, getStreak, getKidEarningsThisWeek } from '../../utils/helpers';
 import KidCard from './KidCard';
 import AddKidModal from './AddKidModal';
+import DailyChallenges from './DailyChallenges';
 import QuickEarnModal from '../behaviors/QuickEarnModal';
 import DeductModal from '../behaviors/DeductModal';
-import { Plus, Trophy, TrendingUp, LogOut, Settings, Users, Target, ScrollText, Medal } from 'lucide-react';
+import { Plus, LogOut, Settings, Users, Target, ScrollText, Medal } from 'lucide-react';
 import Avatar from '../shared/Avatar';
 
 export default function Dashboard({ onNavigate }) {
   const state = useKidzy();
   const dispatch = useKidzyDispatch();
   const [showAddKid, setShowAddKid] = useState(false);
-  const [showQuickEarn, setShowQuickEarn] = useState(null); // kidId
-  const [showDeduct, setShowDeduct] = useState(null); // kidId
+  const [showQuickEarn, setShowQuickEarn] = useState(null);
+  const [showDeduct, setShowDeduct] = useState(null);
   const currentParent = state.parents.find(p => p.id === state.currentParentId);
 
-  const totalFamilyDollars = state.kids.reduce((sum, kid) => sum + getKidBalance(kid.id, state.transactions), 0);
-  const todayEarnings = state.kids.reduce((sum, kid) => sum + getKidEarningsToday(kid.id, state.transactions), 0);
+  // Memoize expensive calculations
+  const kidStats = useMemo(() => {
+    return state.kids.map(kid => ({
+      kid,
+      balance: getKidBalance(kid.id, state.transactions),
+      todayEarnings: getKidEarningsToday(kid.id, state.transactions),
+      weeklyEarnings: getKidEarningsThisWeek(kid.id, state.transactions),
+      streak: getStreak(kid.id, state.transactions),
+    }));
+  }, [state.kids, state.transactions]);
+
+  const totalFamilyDollars = useMemo(() => kidStats.reduce((sum, s) => sum + s.balance, 0), [kidStats]);
+  const todayEarnings = useMemo(() => kidStats.reduce((sum, s) => sum + s.todayEarnings, 0), [kidStats]);
 
   return (
     <div className="pb-24">
@@ -76,6 +88,13 @@ export default function Dashboard({ onNavigate }) {
         ))}
       </div>
 
+      {/* Daily Challenges */}
+      {state.kids.length > 0 && (
+        <div className="px-4 mt-4">
+          <DailyChallenges kidId={state.kids[0].id} />
+        </div>
+      )}
+
       {/* Kids */}
       <div className="px-4 mt-4">
         <div className="flex items-center justify-between mb-3">
@@ -90,7 +109,7 @@ export default function Dashboard({ onNavigate }) {
 
         {state.kids.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
-            <div className="text-5xl mb-3">👶</div>
+            <div className="text-5xl mb-3">{'\u{1F476}'}</div>
             <h3 className="text-lg font-display font-bold text-kidzy-dark mb-1">No kids yet!</h3>
             <p className="text-kidzy-gray text-sm mb-4">Add your first child to start tracking</p>
             <button
@@ -102,14 +121,14 @@ export default function Dashboard({ onNavigate }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {state.kids.map(kid => (
+            {kidStats.map(({ kid, balance, todayEarnings: te, weeklyEarnings: we, streak }) => (
               <KidCard
                 key={kid.id}
                 kid={kid}
-                balance={getKidBalance(kid.id, state.transactions)}
-                todayEarnings={getKidEarningsToday(kid.id, state.transactions)}
-                weeklyEarnings={getKidEarningsThisWeek(kid.id, state.transactions)}
-                streak={getStreak(kid.id, state.transactions)}
+                balance={balance}
+                todayEarnings={te}
+                weeklyEarnings={we}
+                streak={streak}
                 onEarn={() => setShowQuickEarn(kid.id)}
                 onDeduct={() => setShowDeduct(kid.id)}
                 onViewRewards={() => onNavigate('rewards', kid.id)}
