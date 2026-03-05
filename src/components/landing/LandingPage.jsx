@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Star, Trophy, Users, Flame, Gift, BarChart3, Sparkles, Shield, ArrowRight, ChevronDown, ClipboardList } from 'lucide-react';
+import { Star, Trophy, Users, Flame, Gift, BarChart3, Sparkles, Shield, ArrowRight, ChevronDown, ClipboardList, LogIn } from 'lucide-react';
 
-export default function LandingPage({ onGetStarted }) {
+export default function LandingPage({ onGetStarted, onLogin, isReturningUser }) {
   const [scrolled, setScrolled] = useState(false);
   const [visibleSections, setVisibleSections] = useState(new Set());
 
@@ -39,16 +39,30 @@ export default function LandingPage({ onGetStarted }) {
           <div className={`font-display font-bold text-xl flex items-center gap-2 ${scrolled ? 'text-kidzy-purple' : 'text-white'}`}>
             {'\u{2B50}'} Kidzy
           </div>
-          <button
-            onClick={onGetStarted}
-            className={`font-bold px-5 py-2 rounded-xl text-sm transition-all ${
-              scrolled
-                ? 'bg-kidzy-purple text-white hover:bg-kidzy-purple-dark'
-                : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
-            }`}
-          >
-            Open App {'\u{2192}'}
-          </button>
+          <div className="flex items-center gap-2">
+            {isReturningUser && (
+              <button
+                onClick={onLogin}
+                className={`font-bold px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-1.5 ${
+                  scrolled
+                    ? 'bg-kidzy-purple text-white hover:bg-kidzy-purple-dark'
+                    : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
+                }`}
+              >
+                <LogIn size={15} /> Log In
+              </button>
+            )}
+            <button
+              onClick={onGetStarted}
+              className={`font-bold px-5 py-2 rounded-xl text-sm transition-all ${
+                scrolled
+                  ? isReturningUser ? 'bg-gray-100 text-kidzy-purple hover:bg-gray-200' : 'bg-kidzy-purple text-white hover:bg-kidzy-purple-dark'
+                  : isReturningUser ? 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm' : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
+              }`}
+            >
+              {isReturningUser ? 'New Family' : 'Open App'} {'\u{2192}'}
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -74,14 +88,31 @@ export default function LandingPage({ onGetStarted }) {
             Kidzy turns everyday behaviors into a rewarding game. Kids earn K$ for good habits, unlock rewards, and build streaks the whole family loves.
           </p>
 
-          <button
-            onClick={onGetStarted}
-            className="inline-flex items-center gap-3 bg-white text-kidzy-purple font-display font-bold text-lg px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-[1.03] transition-all"
-          >
-            {'\u{1F680}'} Start Using Kidzy — It's Free
-          </button>
+          {isReturningUser ? (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <button
+                onClick={onLogin}
+                className="inline-flex items-center gap-3 bg-white text-kidzy-purple font-display font-bold text-lg px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-[1.03] transition-all"
+              >
+                <LogIn size={22} /> Log In to Your Family
+              </button>
+              <button
+                onClick={onGetStarted}
+                className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white font-display font-semibold text-sm px-6 py-3 rounded-xl hover:bg-white/25 transition-all"
+              >
+                {'\u{2728}'} Create New Family
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onGetStarted}
+              className="inline-flex items-center gap-3 bg-white text-kidzy-purple font-display font-bold text-lg px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-[1.03] transition-all"
+            >
+              {'\u{1F680}'} Start Using Kidzy — It's Free
+            </button>
+          )}
 
-          <p className="text-sm opacity-70 mt-4">Works on any device {'\u{2022}'} Quick setup {'\u{2022}'} 30 seconds to start</p>
+          <p className="text-sm opacity-70 mt-4">{isReturningUser ? 'Welcome back!' : 'Works on any device'} {'\u{2022}'} Quick setup {'\u{2022}'} 30 seconds to start</p>
 
           <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl text-sm font-semibold mt-4">
             <Shield size={16} /> Your data stays on your device. Always private.
@@ -310,10 +341,10 @@ export default function LandingPage({ onGetStarted }) {
               Join families turning daily routines into rewarding adventures. Free forever, no strings attached.
             </p>
             <button
-              onClick={onGetStarted}
+              onClick={isReturningUser ? onLogin : onGetStarted}
               className="inline-flex items-center gap-3 bg-white text-kidzy-purple font-display font-bold text-lg px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-[1.03] transition-all relative"
             >
-              {'\u{2B50}'} Start Using Kidzy Now
+              {isReturningUser ? <><LogIn size={22} /> Log In Now</> : <>{'\u{2B50}'} Start Using Kidzy Now</>}
             </button>
           </div>
         </div>

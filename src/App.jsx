@@ -35,6 +35,11 @@ function AppContent() {
       return;
     }
 
+    // Also allow setup route if family already exists (for creating a new/reset family)
+    if (path === '/setup' && state.family) {
+      // Allow navigating to setup only if explicitly requested
+    }
+
     // Kid mode → kid dashboard
     if (state.kidMode) {
       if (path !== '/kid-mode') {
@@ -57,13 +62,13 @@ function AppContent() {
     }
   }, [state?.family, state?.currentParentId, state?.kidMode, location.pathname, navigate, state]);
 
-  // When user logs out, redirect to landing (only if on an app route)
+  // When user logs out, redirect to landing page (only if on an app route)
   useEffect(() => {
     if (state?.loggedOut) {
       const path = location.pathname;
       const isAppRoute = ['/dashboard', '/leaderboard', '/rewards', '/activity', '/settings'].some(r => path.startsWith(r));
       if (isAppRoute) {
-        navigate('/login', { replace: true });
+        navigate('/', { replace: true });
       }
     }
   }, [state?.loggedOut, navigate, location.pathname]);
@@ -71,11 +76,11 @@ function AppContent() {
   if (!state) return null;
 
   const handleGetStarted = () => {
-    if (state.family) {
-      navigate('/login');
-    } else {
-      navigate('/setup');
-    }
+    navigate('/setup');
+  };
+
+  const handleLogin = () => {
+    navigate('/login');
   };
 
   const handleNavigate = (page, kidId = null) => {
@@ -105,14 +110,14 @@ function AppContent() {
         !state.family ? (
           <LandingPage onGetStarted={handleGetStarted} />
         ) : !state.currentParentId && !state.kidMode ? (
-          <LandingPage onGetStarted={handleGetStarted} />
+          <LandingPage onGetStarted={handleGetStarted} onLogin={handleLogin} isReturningUser={true} />
         ) : (
           <Navigate to="/dashboard" replace />
         )
       } />
 
       <Route path="/setup" element={
-        !state.family ? <WelcomeScreen /> : <Navigate to="/dashboard" replace />
+        !state.family || !state.currentParentId ? <WelcomeScreen /> : <Navigate to="/dashboard" replace />
       } />
 
       <Route path="/login" element={

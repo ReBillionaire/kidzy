@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import { verifyPin, hashPin, isLockedOut, recordFailedAttempt, resetLockout } from '../../utils/storage';
 import Avatar from '../shared/Avatar';
-import { Lock, LogIn, ShieldAlert, ArrowLeft, KeyRound, AlertTriangle } from 'lucide-react';
+import { Lock, LogIn, ShieldAlert, ArrowLeft, KeyRound, AlertTriangle, Home } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginScreen() {
   const state = useKidzy();
   const dispatch = useKidzyDispatch();
+  const navigate = useNavigate();
   const [mode, setMode] = useState(null); // null = selector, 'parent', 'kid'
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -274,6 +276,13 @@ export default function LoginScreen() {
             </div>
           </button>
         </div>
+
+        <button
+          onClick={() => navigate('/')}
+          className="w-full mt-4 flex items-center justify-center gap-1.5 text-sm text-kidzy-gray hover:text-kidzy-purple transition-colors font-medium py-2"
+        >
+          <Home size={14} /> Back to Home
+        </button>
       </div>
     </div>
   );

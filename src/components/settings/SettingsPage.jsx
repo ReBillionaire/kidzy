@@ -5,7 +5,7 @@ import Modal from '../shared/Modal';
 import Avatar from '../shared/Avatar';
 import DollarBadge from '../shared/DollarBadge';
 import AddKidModal from '../dashboard/AddKidModal';
-import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Plus, Edit3, X, ChevronDown, ChevronUp, ClipboardList, Sparkles, RotateCcw, Clock, CheckCircle2, Circle } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Plus, Edit3, X, ChevronDown, ChevronUp, ClipboardList, Sparkles, RotateCcw, Clock, CheckCircle2, Circle, LogOut, Home } from 'lucide-react';
 
 const CHORE_ICONS = ['\u{1F9F9}', '\u{1F37D}\u{FE0F}', '\u{1F6CF}\u{FE0F}', '\u{1F4DA}', '\u{1F415}', '\u{1F5D1}\u{FE0F}', '\u{1F455}', '\u{1F331}', '\u{1F9FA}', '\u{1F6BF}', '\u{1F9B7}', '\u{1F392}', '\u{1F9F8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F58C}\u{FE0F}'];
 
@@ -368,6 +368,26 @@ export default function SettingsPage({ onBack }) {
             {importStatus === 'error' && (
               <p className="text-red-500 text-sm text-center font-medium">Failed to restore. Invalid backup file.</p>
             )}
+          </div>
+        </div>
+
+        {/* Account Actions */}
+        <div>
+          <h2 className="text-lg font-display font-bold flex items-center gap-2 mb-3"><LogOut size={20} className="text-kidzy-purple" /> Account</h2>
+          <div className="space-y-2">
+            <button
+              onClick={() => dispatch({ type: 'LOGOUT' })}
+              className="w-full bg-white rounded-xl p-4 flex items-center gap-3 shadow-sm border border-gray-100 hover:bg-purple-50 transition-colors text-left"
+            >
+              <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                <LogOut size={20} className="text-kidzy-purple" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-kidzy-dark">Log Out</p>
+                <p className="text-xs text-kidzy-gray">Return to the home screen</p>
+              </div>
+              <ArrowLeft size={16} className="text-gray-300 rotate-180" />
+            </button>
           </div>
         </div>
 
