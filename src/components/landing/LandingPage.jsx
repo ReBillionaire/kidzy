@@ -21,7 +21,7 @@ export default function LandingPage({ onGetStarted }) {
           }
         });
       },
-      { threshold: 0.15 }
+      { threshold: 0.05 }
     );
     document.querySelectorAll('[data-animate]').forEach(el => observer.observe(el));
     return () => observer.disconnect();
@@ -172,7 +172,7 @@ export default function LandingPage({ onGetStarted }) {
         <div className="max-w-4xl mx-auto">
           <div className={`text-center mb-12 transition-all duration-700 ${isVisible('how-it-works') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <h2 className="font-display font-bold text-3xl sm:text-4xl text-kidzy-dark mb-3">Up and Running in 30 Seconds</h2>
-            <p className="text-kidzy-gray text-lg">No signups, no emails, no downloads. Just open and go.</p>
+            <p className="text-kidzy-gray text-lg">No downloads needed. Just open, set up, and go.</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
@@ -253,7 +253,7 @@ export default function LandingPage({ onGetStarted }) {
       <footer className="py-8 text-center border-t border-gray-200 px-4">
         <div className="font-display font-bold text-xl text-kidzy-purple mb-2">{'\u{2B50}'} Kidzy</div>
         <p className="text-kidzy-gray text-sm">Making good habits fun for families everywhere.</p>
-        <p className="text-kidzy-gray text-xs mt-2">100% free {'\u{2022}'} No data collected {'\u{2022}'} Works offline</p>
+        <p className="text-kidzy-gray text-xs mt-2">100% free {'\u{2022}'} Privacy-first {'\u{2022}'} Works offline</p>
       </footer>
 
       {/* Float animation */}

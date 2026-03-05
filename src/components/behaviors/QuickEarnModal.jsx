@@ -40,11 +40,17 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
 
   const handleUndo = useCallback(() => {
     if (!undoTx) return;
-    dispatch({ type: 'REMOVE_TRANSACTION', payload: undoTx.id });
+    // Find the actual last earn transaction for this kid
+    const lastTx = state.transactions
+      .filter(t => t.kidId === kidId && t.type === 'earn')
+      .slice(-1)[0];
+    if (lastTx) {
+      dispatch({ type: 'REMOVE_TRANSACTION', payload: lastTx.id });
+    }
     setUndoTx(null);
     setLastEarned(null);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-  }, [undoTx, dispatch]);
+  }, [undoTx, state.transactions, kidId, dispatch]);
 
   const handleEarn = (item, categoryName) => {
     const roll = rollMultiplier();
@@ -64,11 +70,6 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
 
     dispatch({ type: 'ADD_TRANSACTION', payload: txPayload });
 
-    // Find the newly created transaction (last one)
-    const newTxId = state.transactions.length > 0
-      ? null // We'll use a workaround since dispatch is async
-      : null;
-
     if (roll.multiplier > 1) {
       if (soundEnabled) playBonusSound();
       if (hapticEnabled) vibrateBonus();
@@ -81,13 +82,8 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 2000);
 
-    // Set up undo (we'll grab the tx from state after next render)
-    // Use a slight delay to let reducer update
-    setTimeout(() => {
-      const latestTx = document.querySelector('[data-latest-tx-id]');
-      // Fallback: just store the info for undo
-      startUndoTimer('__latest__', finalAmount, item.name);
-    }, 50);
+    // Set up undo timer
+    startUndoTimer('pending', finalAmount, item.name);
   };
 
   const handleCustomEarn = () => {
@@ -112,19 +108,8 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
     setCustomAmount('');
     setCustomReason('');
     setShowCustom(false);
-    startUndoTimer('__latest__', amount, customReason.trim());
+    startUndoTimer('pending', amount, customReason.trim());
   };
-
-  // Better undo: grab the actual last transaction
-  const handleUndoLatest = useCallback(() => {
-    const lastTx = state.transactions.filter(t => t.kidId === kidId && t.type === 'earn').slice(-1)[0];
-    if (lastTx) {
-      dispatch({ type: 'REMOVE_TRANSACTION', payload: lastTx.id });
-      setUndoTx(null);
-      setLastEarned(null);
-      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    }
-  }, [state.transactions, kidId, dispatch]);
 
   return (
     <>
@@ -168,7 +153,7 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
             <p className={`text-sm ${lastEarned.multiplier > 1 ? 'text-yellow-600' : 'text-green-600'}`}>{lastEarned.message}</p>
             {undoTx && (
               <button
-                onClick={handleUndoLatest}
+                onClick={handleUndo}
                 className="mt-2 inline-flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 bg-white/80 px-3 py-1 rounded-full border border-gray-200 transition-colors"
               >
                 <Undo2 size={12} /> Undo

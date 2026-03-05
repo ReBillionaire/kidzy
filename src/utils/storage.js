@@ -13,7 +13,7 @@ const defaultData = () => ({
   weeklySummaries: [],
   currentParentId: null,
   settings: {
-    currency: '$',
+    currency: 'K$',
     weekStartDay: 'monday',
     dailyCheckInReminder: true,
     soundEnabled: true,
