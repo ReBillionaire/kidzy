@@ -51,10 +51,10 @@ export default function Dashboard({ onNavigate }) {
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => onNavigate('settings')} className="p-2 bg-white/15 rounded-full hover:bg-white/25 transition-colors">
+            <button onClick={() => onNavigate('settings')} className="p-2 bg-white/15 rounded-full hover:bg-white/25 transition-colors" aria-label="Settings">
               <Settings size={18} />
             </button>
-            <button onClick={() => dispatch({ type: 'LOGOUT' })} className="p-2 bg-white/15 rounded-full hover:bg-white/25 transition-colors">
+            <button onClick={() => dispatch({ type: 'LOGOUT' })} className="p-2 bg-white/15 rounded-full hover:bg-white/25 transition-colors" aria-label="Logout">
               <LogOut size={18} />
             </button>
           </div>
@@ -95,10 +95,12 @@ export default function Dashboard({ onNavigate }) {
         ))}
       </div>
 
-      {/* Daily Challenges */}
+      {/* Daily Challenges - show for each kid */}
       {state.kids.length > 0 && (
-        <div className="px-4 mt-4">
-          <DailyChallenges kidId={state.kids[0].id} />
+        <div className="px-4 mt-4 space-y-3">
+          {state.kids.map(kid => (
+            <DailyChallenges key={kid.id} kidId={kid.id} kidName={kid.name} showKidName={state.kids.length > 1} />
+          ))}
         </div>
       )}
 

@@ -10,7 +10,11 @@ const NAV_ITEMS = [
 
 export default function BottomNav({ active, onNavigate }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-2 pb-[env(safe-area-inset-bottom)] z-40">
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-2 pb-[env(safe-area-inset-bottom)] z-40"
+      role="navigation"
+      aria-label="Main navigation"
+    >
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {NAV_ITEMS.map(item => {
           const isActive = active === item.key;
@@ -19,6 +23,8 @@ export default function BottomNav({ active, onNavigate }) {
             <button
               key={item.key}
               onClick={() => onNavigate(item.key)}
+              aria-label={item.label}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex flex-col items-center gap-0.5 py-2 px-3 rounded-xl transition-all ${
                 isActive ? 'text-kidzy-purple' : 'text-gray-400 hover:text-gray-600'
               }`}
@@ -31,6 +37,6 @@ export default function BottomNav({ active, onNavigate }) {
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }

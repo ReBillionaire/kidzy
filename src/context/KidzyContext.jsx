@@ -224,7 +224,8 @@ export function KidzyProvider({ children }) {
 
 export function useKidzy() {
   const context = useContext(KidzyContext);
-  if (!context && context !== null) throw new Error('useKidzy must be used within KidzyProvider');
+  // context is null during initial load (valid) or if outside provider (createContext default is null)
+  // We allow null as a valid state during initialization
   return context;
 }
 

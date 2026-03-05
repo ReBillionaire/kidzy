@@ -5,7 +5,7 @@ import { getToday } from '../../utils/storage';
 import { playAchievementSound, vibrateRedeem } from '../../utils/sounds';
 import ProgressBar from '../shared/ProgressBar';
 
-export default function DailyChallenges({ kidId }) {
+export default function DailyChallenges({ kidId, kidName, showKidName = false }) {
   const state = useKidzy();
   const dispatch = useKidzyDispatch();
   const today = getToday();
@@ -48,6 +48,7 @@ export default function DailyChallenges({ kidId }) {
     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-lg">{'\u{1F3AF}'}</span>
+        {showKidName && <span className="text-xs font-semibold text-kidzy-purple bg-purple-100 px-2 py-0.5 rounded-full">{kidName}</span>}
         <h3 className="font-display font-bold text-kidzy-dark text-sm">Daily Challenges</h3>
         <span className="text-xs text-kidzy-gray ml-auto">Resets daily</span>
       </div>

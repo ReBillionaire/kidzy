@@ -113,7 +113,11 @@ export default function ActivityPage({ onBack }) {
         ) : (
           Object.entries(grouped).map(([date, txns]) => (
             <div key={date} className="mb-6">
-              <h3 className="text-sm font-semibold text-kidzy-gray mb-2 sticky top-0 bg-kidzy-bg py-1 z-10">{formatDate(date)}</h3>
+              <h3 className="text-sm font-semibold text-kidzy-gray mb-2 sticky top-0 bg-kidzy-bg py-1 z-10">
+                {date === new Date().toISOString().split('T')[0] ? 'Today' :
+                 date === new Date(Date.now() - 86400000).toISOString().split('T')[0] ? 'Yesterday' :
+                 formatDate(date)}
+              </h3>
               <div className="space-y-2">
                 {txns.map(tx => {
                   const kid = getKid(tx.kidId);

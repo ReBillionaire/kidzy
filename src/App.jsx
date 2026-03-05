@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { KidzyProvider, useKidzy } from './context/KidzyContext';
 import ErrorBoundary from './components/shared/ErrorBoundary';
+import LandingPage from './components/landing/LandingPage';
 import WelcomeScreen from './components/auth/WelcomeScreen';
 import LoginScreen from './components/auth/LoginScreen';
 import OnboardingTutorial from './components/onboarding/OnboardingTutorial';
@@ -16,15 +17,19 @@ function AppContent() {
   const state = useKidzy();
   const [page, setPage] = useState('dashboard');
   const [selectedKidId, setSelectedKidId] = useState(null);
+  const [showSetup, setShowSetup] = useState(false);
 
-  // No family yet -> Welcome/Setup
+  // No family yet -> Landing Page or Setup Flow
   if (!state?.family) {
-    return <WelcomeScreen />;
+    if (showSetup) {
+      return <WelcomeScreen />;
+    }
+    return <LandingPage onGetStarted={() => setShowSetup(true)} />;
   }
 
   // Kid Mode — read-only dashboard for the child
   if (state.kidMode) {
-    return <KidDashboard />;
+    return <ErrorBoundary showDetails><KidDashboard /></ErrorBoundary>;
   }
 
   // Family exists but no logged-in parent -> Login

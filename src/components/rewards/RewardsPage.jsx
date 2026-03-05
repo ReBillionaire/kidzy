@@ -17,11 +17,30 @@ export default function RewardsPage({ onBack, selectedKidId }) {
   const dispatch = useKidzyDispatch();
   const [showAddWish, setShowAddWish] = useState(false);
   const [showAddDream, setShowAddDream] = useState(false);
-  const [activeKid, setActiveKid] = useState(selectedKidId || state.kids[0]?.id);
+  const [activeKid, setActiveKid] = useState(selectedKidId || state.kids[0]?.id || null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [tab, setTab] = useState('wishes'); // wishes, dreams
 
-  const kid = state.kids.find(k => k.id === activeKid);
+  // Guard: no kids yet
+  if (!state.kids.length) {
+    return (
+      <div className="pb-24">
+        <div className="bg-gradient-to-r from-kidzy-pink to-kidzy-orange text-white p-4 pb-6 rounded-b-3xl">
+          <div className="flex items-center gap-3">
+            <button onClick={onBack} className="p-2 bg-white/15 rounded-full"><ArrowLeft size={18} /></button>
+            <h1 className="text-xl font-display font-bold">Rewards & Dreams</h1>
+          </div>
+        </div>
+        <div className="px-4 mt-8 text-center">
+          <div className="text-5xl mb-3">{'\u{1F381}'}</div>
+          <h3 className="font-display font-bold text-lg">Add kids first!</h3>
+          <p className="text-kidzy-gray text-sm">Go to the dashboard to add your first kid, then set up their wish list here.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const kid = state.kids.find(k => k.id === activeKid) || state.kids[0];
   const balance = kid ? getKidBalance(kid.id, state.transactions) : 0;
   const wishes = state.wishListItems.filter(w => w.kidId === activeKid && w.status === 'active');
   const redeemedWishes = state.wishListItems.filter(w => w.kidId === activeKid && w.status === 'redeemed');

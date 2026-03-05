@@ -42,4 +42,4 @@ export default function Avatar({ src, name, size = 'md', editable = false, onIma
       )}
     </div>
   );
-            }
+}
