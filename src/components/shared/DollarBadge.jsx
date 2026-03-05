@@ -11,9 +11,9 @@ export default function DollarBadge({ amount, size = 'md', showPlus = false, neg
     : 'bg-gradient-to-r from-yellow-100 to-amber-200 text-amber-800';
 
   return (
-    <span className={`inline-flex items-center gap-1 ${sizeClasses[size]} ${colorClasses} font-bold rounded-full whitespace-nowrap`}>
-      {negative ? '−' : showPlus ? '+' : ''}${Math.abs(amount).toFixed(0)}
-      <span className="text-[0.7em]">K$</span>
+    <span className={`inline-flex items-center gap-0.5 ${sizeClasses[size]} ${colorClasses} font-bold rounded-full whitespace-nowrap`}>
+      {negative ? '−' : showPlus ? '+' : ''}{Math.abs(amount).toFixed(0)}
+      <span className="text-[0.7em] opacity-80">K$</span>
     </span>
   );
 }

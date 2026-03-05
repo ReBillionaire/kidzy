@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
-import { getKidBalance, getKidEarningsToday, getStreak, getKidEarningsThisWeek, getLongestStreak, getDailyHigh } from '../../utils/helpers';
+import { getKidBalance, getKidEarningsToday, getStreak, getKidEarningsThisWeek } from '../../utils/helpers';
 import KidCard from './KidCard';
 import AddKidModal from './AddKidModal';
 import DailyChallenges from './DailyChallenges';
@@ -19,24 +19,18 @@ export default function Dashboard({ onNavigate }) {
 
   // Memoize expensive calculations
   const kidStats = useMemo(() => {
-    return state.kids.map(kid => {
-      const todayEarnings = getKidEarningsToday(kid.id, state.transactions);
-      const dailyHigh = getDailyHigh(kid.id, state.transactions);
-      return {
-        kid,
-        balance: getKidBalance(kid.id, state.transactions),
-        todayEarnings,
-        weeklyEarnings: getKidEarningsThisWeek(kid.id, state.transactions),
-        streak: getStreak(kid.id, state.transactions),
-        longestStreak: getLongestStreak(kid.id, state.transactions),
-        dailyHigh,
-        isNewHigh: todayEarnings > 0 && todayEarnings >= dailyHigh,
-      };
-    });
+    return state.kids.map(kid => ({
+      kid,
+      balance: getKidBalance(kid.id, state.transactions),
+      todayEarnings: getKidEarningsToday(kid.id, state.transactions),
+      weeklyEarnings: getKidEarningsThisWeek(kid.id, state.transactions),
+      streak: getStreak(kid.id, state.transactions),
+    }));
   }, [state.kids, state.transactions]);
 
-  const totalFamilyDollars = useMemo(() => kidStats.reduce((sum, s) => sum + s.balance, 0), [kidStats]);
   const todayEarnings = useMemo(() => kidStats.reduce((sum, s) => sum + s.todayEarnings, 0), [kidStats]);
+  const totalKids = state.kids.length;
+  const activeStreaks = useMemo(() => kidStats.filter(s => s.streak > 0).length, [kidStats]);
 
   return (
     <div className="pb-24">
@@ -60,19 +54,19 @@ export default function Dashboard({ onNavigate }) {
           </div>
         </div>
 
-        <div className="text-center mb-2">
-          <h1 className="text-2xl font-display font-bold">{state.family.name}</h1>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 mt-4">
+        {/* Today's summary — clear, actionable stats */}
+        <div className="grid grid-cols-3 gap-2 mt-2">
           <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center">
-            <p className="text-3xl font-bold font-display">${totalFamilyDollars}</p>
-            <p className="text-white/80 text-xs">Family K$ Balance</p>
+            <p className="text-2xl font-bold font-display">+{todayEarnings}</p>
+            <p className="text-white/70 text-xs">K$ Today</p>
           </div>
           <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center">
-            <p className="text-3xl font-bold font-display">+${todayEarnings}</p>
-            <p className="text-white/80 text-xs">Earned Today</p>
+            <p className="text-2xl font-bold font-display">{totalKids}</p>
+            <p className="text-white/70 text-xs">{totalKids === 1 ? 'Kid' : 'Kids'}</p>
+          </div>
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center">
+            <p className="text-2xl font-bold font-display">{activeStreaks > 0 ? `${activeStreaks}` : '0'}</p>
+            <p className="text-white/70 text-xs">{activeStreaks === 1 ? 'Active Streak' : 'Active Streaks'}</p>
           </div>
         </div>
       </div>
@@ -120,7 +114,7 @@ export default function Dashboard({ onNavigate }) {
           <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
             <div className="text-5xl mb-3">{'\u{1F476}'}</div>
             <h3 className="text-lg font-display font-bold text-kidzy-dark mb-1">No kids yet!</h3>
-            <p className="text-kidzy-gray text-sm mb-4">Add your first child to start tracking</p>
+            <p className="text-kidzy-gray text-sm mb-4">Add your first child to start awarding K$ points</p>
             <button
               onClick={() => setShowAddKid(true)}
               className="bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white font-bold py-2.5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all"
@@ -130,7 +124,7 @@ export default function Dashboard({ onNavigate }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {kidStats.map(({ kid, balance, todayEarnings: te, weeklyEarnings: we, streak, longestStreak, dailyHigh, isNewHigh }) => (
+            {kidStats.map(({ kid, balance, todayEarnings: te, weeklyEarnings: we, streak }) => (
               <KidCard
                 key={kid.id}
                 kid={kid}
@@ -138,9 +132,6 @@ export default function Dashboard({ onNavigate }) {
                 todayEarnings={te}
                 weeklyEarnings={we}
                 streak={streak}
-                longestStreak={longestStreak}
-                dailyHigh={dailyHigh}
-                isNewHigh={isNewHigh}
                 onEarn={() => setShowQuickEarn(kid.id)}
                 onDeduct={() => setShowDeduct(kid.id)}
                 onViewRewards={() => onNavigate('rewards', kid.id)}

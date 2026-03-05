@@ -1,26 +1,53 @@
 import { useState } from 'react';
-import { Star, Users, Trophy, ArrowRight, Sparkles } from 'lucide-react';
+import { Star, Users, Trophy, ArrowRight, Sparkles, Shield, ChevronRight } from 'lucide-react';
 import { useKidzyDispatch } from '../../context/KidzyContext';
 import { hashPin } from '../../utils/storage';
 import Avatar from '../shared/Avatar';
 
 export default function WelcomeScreen() {
   const dispatch = useKidzyDispatch();
-  const [step, setStep] = useState(0); // 0=splash, 1=family setup, 2=parent profile
-  const [familyName, setFamilyName] = useState('');
-  const [pin, setPin] = useState('');
+  const [step, setStep] = useState(0); // 0=splash, 1=quick setup
   const [parentName, setParentName] = useState('');
   const [parentAvatar, setParentAvatar] = useState(null);
+  const [wantPin, setWantPin] = useState(false);
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinError, setPinError] = useState('');
 
   const handleSetup = async () => {
-    if (!familyName.trim() || !parentName.trim() || pin.length < 4) return;
-    const hashedPin = await hashPin(pin);
-    dispatch({
-      type: 'SETUP_FAMILY',
-      payload: { familyName: familyName.trim(), pin: hashedPin, parentName: parentName.trim(), avatar: parentAvatar }
-    });
+    if (!parentName.trim()) return;
+
+    // If they opted for a PIN, validate it
+    if (wantPin && pin.length >= 4) {
+      if (pin !== confirmPin) {
+        setPinError("PINs don't match. Try again.");
+        return;
+      }
+      const hashedPin = await hashPin(pin);
+      dispatch({
+        type: 'SETUP_FAMILY',
+        payload: {
+          familyName: `${parentName.trim()}'s Family`,
+          pin: hashedPin,
+          parentName: parentName.trim(),
+          avatar: parentAvatar,
+        }
+      });
+    } else {
+      // No PIN — just set up immediately
+      dispatch({
+        type: 'SETUP_FAMILY',
+        payload: {
+          familyName: `${parentName.trim()}'s Family`,
+          pin: null,
+          parentName: parentName.trim(),
+          avatar: parentAvatar,
+        }
+      });
+    }
   };
 
+  // Step 0: Welcome splash
   if (step === 0) {
     return (
       <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6 text-white">
@@ -31,9 +58,9 @@ export default function WelcomeScreen() {
 
           <div className="space-y-4 mb-10">
             {[
-              { icon: <Star size={24} />, text: 'Earn Kidzy Dollars for great behavior' },
-              { icon: <Trophy size={24} />, text: 'Unlock awesome rewards & dreams' },
-              { icon: <Users size={24} />, text: 'Track the whole family together' },
+              { icon: <Star size={24} />, text: 'Award K$ points for great behavior' },
+              { icon: <Trophy size={24} />, text: 'Kids save up for real rewards' },
+              { icon: <Users size={24} />, text: 'The whole family joins in' },
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-3 bg-white/15 backdrop-blur-sm rounded-xl p-3 text-left" style={{ animationDelay: `${i * 0.15}s` }}>
                 <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">{item.icon}</div>
@@ -48,91 +75,96 @@ export default function WelcomeScreen() {
           >
             Get Started <ArrowRight size={20} />
           </button>
+          <p className="text-white/60 text-xs mt-3">Takes less than 30 seconds</p>
         </div>
       </div>
     );
   }
 
-  if (step === 1) {
-    return (
-      <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md animate-slide-up">
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-2">{'\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}\u{200D}\u{1F466}'}</div>
-            <h2 className="text-2xl font-display font-bold text-kidzy-dark">Create Your Family</h2>
-            <p className="text-kidzy-gray mt-1">Let's set up your Kidzy family account</p>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-kidzy-dark mb-1">Family Name</label>
-              <input
-                type="text"
-                placeholder="e.g., The Johnsons"
-                value={familyName}
-                onChange={e => setFamilyName(e.target.value)}
-                maxLength={50}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none text-lg transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-kidzy-dark mb-1">Family PIN (4+ digits)</label>
-              <input
-                type="password"
-                placeholder={'\u{2022}\u{2022}\u{2022}\u{2022}'}
-                value={pin}
-                onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none text-lg tracking-[0.5em] text-center transition-colors"
-                inputMode="numeric"
-              />
-              <p className="text-xs text-kidzy-gray mt-1">Used to protect parent access. PIN is stored securely.</p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => familyName.trim() && pin.length >= 4 && setStep(2)}
-            disabled={!familyName.trim() || pin.length < 4}
-            className="w-full mt-6 bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:shadow-xl transition-all"
-          >
-            Next <ArrowRight size={18} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // Step 1: Quick setup — just your name, optional PIN
   return (
     <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
       <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md animate-slide-up">
-        <div className="text-center mb-6">
-          <div className="text-4xl mb-2">{'\u{1F464}'}</div>
-          <h2 className="text-2xl font-display font-bold text-kidzy-dark">Your Profile</h2>
-          <p className="text-kidzy-gray mt-1">Set up the first parent account</p>
+        <div className="text-center mb-5">
+          <h2 className="text-2xl font-display font-bold text-kidzy-dark">Welcome! Who are you?</h2>
+          <p className="text-kidzy-gray mt-1 text-sm">You'll be the first parent on this account</p>
         </div>
 
-        <div className="flex justify-center mb-6">
+        {/* Avatar */}
+        <div className="flex justify-center mb-5">
           <Avatar src={parentAvatar} name={parentName || 'P'} size="xl" editable onImageChange={setParentAvatar} />
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Your Name</label>
+        {/* Name */}
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Your name</label>
           <input
             type="text"
             placeholder="e.g., Mom, Dad, Alex"
             value={parentName}
             onChange={e => setParentName(e.target.value)}
             maxLength={50}
+            autoFocus
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none text-lg transition-colors"
           />
         </div>
 
+        {/* Optional PIN toggle */}
+        {!wantPin ? (
+          <button
+            onClick={() => setWantPin(true)}
+            className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-gray-200 hover:border-kidzy-purple/30 hover:bg-purple-50/30 transition-all text-left mb-4"
+          >
+            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+              <Shield size={16} className="text-gray-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-kidzy-dark">Add a PIN?</p>
+              <p className="text-xs text-kidzy-gray">Optional — keeps kids from changing settings</p>
+            </div>
+            <ChevronRight size={16} className="text-gray-300" />
+          </button>
+        ) : (
+          <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield size={16} className="text-kidzy-purple" />
+                <span className="text-sm font-semibold text-kidzy-dark">Set a PIN</span>
+              </div>
+              <button onClick={() => { setWantPin(false); setPin(''); setConfirmPin(''); setPinError(''); }} className="text-xs text-kidzy-gray hover:text-kidzy-purple">Skip</button>
+            </div>
+            <input
+              type="password"
+              placeholder="4-digit PIN"
+              value={pin}
+              onChange={e => { setPin(e.target.value.replace(/\D/g, '').slice(0, 6)); setPinError(''); }}
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-kidzy-purple focus:outline-none text-center tracking-[0.5em] transition-colors"
+              inputMode="numeric"
+            />
+            {pin.length >= 4 && (
+              <input
+                type="password"
+                placeholder="Confirm PIN"
+                value={confirmPin}
+                onChange={e => { setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6)); setPinError(''); }}
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-kidzy-purple focus:outline-none text-center tracking-[0.5em] transition-colors"
+                inputMode="numeric"
+              />
+            )}
+            {pinError && <p className="text-red-500 text-xs text-center">{pinError}</p>}
+            <p className="text-xs text-kidzy-gray">Keeps parent features protected. You can change this in Settings later.</p>
+          </div>
+        )}
+
         <button
           onClick={handleSetup}
-          disabled={!parentName.trim()}
-          className="w-full mt-6 bg-gradient-to-r from-kidzy-green to-kidzy-teal text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:shadow-xl transition-all"
+          disabled={!parentName.trim() || (wantPin && pin.length < 4)}
+          className="w-full bg-gradient-to-r from-kidzy-green to-kidzy-teal text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:shadow-xl transition-all"
         >
           <Sparkles size={18} /> Launch Kidzy!
         </button>
+
+        <p className="text-center text-xs text-kidzy-gray mt-3">You can add more parents and kids once inside</p>
       </div>
     </div>
   );

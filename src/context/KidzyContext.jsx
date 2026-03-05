@@ -21,13 +21,18 @@ function kidzyReducer(state, action) {
       // AUTH
       case 'SETUP_FAMILY': {
         const { familyName, pin, parentName, avatar } = action.payload;
-        if (!validateString(familyName) || !validateString(parentName)) return state;
+        if (!validateString(parentName)) return state;
+        const name = familyName && validateString(familyName) ? familyName : `${parentName}'s Family`;
         return {
           ...state,
-          family: { id: generateId('fam'), name: familyName, pin, createdAt: new Date().toISOString() },
+          family: { id: generateId('fam'), name: name, pin: pin || null, createdAt: new Date().toISOString() },
           parents: [{ id: generateId('parent'), name: parentName, avatar: avatar || null, role: 'admin', createdAt: new Date().toISOString() }],
           currentParentId: null,
         };
+      }
+      case 'SET_FAMILY_PIN': {
+        if (!action.payload) return state;
+        return { ...state, family: { ...state.family, pin: action.payload } };
       }
       case 'SET_CURRENT_PARENT': {
         if (!validateId(action.payload)) return state;
