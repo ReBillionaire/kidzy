@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { KidzyProvider, useKidzy } from './context/KidzyContext';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 import LandingPage from './components/landing/LandingPage';
@@ -15,73 +16,171 @@ import BottomNav from './components/shared/BottomNav';
 
 function AppContent() {
   const state = useKidzy();
-  const [page, setPage] = useState('dashboard');
-  const [selectedKidId, setSelectedKidId] = useState(null);
-  const [showSetup, setShowSetup] = useState(false);
-  const [showLanding, setShowLanding] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // When user logs out, show landing page again
+  // Redirect logic based on auth state
+  useEffect(() => {
+    if (!state) return;
+
+    const path = location.pathname;
+    const isAppRoute = ['/dashboard', '/leaderboard', '/rewards', '/activity', '/settings'].some(r => path.startsWith(r));
+    const isAuthRoute = ['/login', '/setup', '/kid-mode'].includes(path);
+
+    // No family → must be on landing or setup
+    if (!state.family) {
+      if (path !== '/' && path !== '/setup') {
+        navigate('/', { replace: true });
+      }
+      return;
+    }
+
+    // Kid mode → kid dashboard
+    if (state.kidMode) {
+      if (path !== '/kid-mode') {
+        navigate('/kid-mode', { replace: true });
+      }
+      return;
+    }
+
+    // Family exists but no logged-in parent → landing or login
+    if (!state.currentParentId) {
+      if (isAppRoute) {
+        navigate('/login', { replace: true });
+      }
+      return;
+    }
+
+    // Logged in but on auth pages → redirect to dashboard
+    if (state.currentParentId && (path === '/' || path === '/login' || path === '/setup')) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [state?.family, state?.currentParentId, state?.kidMode, location.pathname, navigate, state]);
+
+  // When user logs out, redirect
   useEffect(() => {
     if (state?.loggedOut) {
-      setShowLanding(true);
+      navigate('/', { replace: true });
     }
-  }, [state?.loggedOut]);
+  }, [state?.loggedOut, navigate]);
 
-  // No family yet -> Landing Page or Setup Flow
-  if (!state?.family) {
-    if (showSetup) {
-      return <WelcomeScreen />;
+  if (!state) return null;
+
+  const handleGetStarted = () => {
+    if (state.family) {
+      navigate('/login');
+    } else {
+      navigate('/setup');
     }
-    return <LandingPage onGetStarted={() => setShowSetup(true)} />;
-  }
-
-  // Kid Mode — read-only dashboard for the child
-  if (state.kidMode) {
-    return <ErrorBoundary showDetails><KidDashboard /></ErrorBoundary>;
-  }
-
-  // Family exists but no logged-in parent -> Landing first, then Login
-  if (!state.currentParentId) {
-    if (showLanding) {
-      return <LandingPage onGetStarted={() => setShowLanding(false)} />;
-    }
-    return <LoginScreen />;
-  }
-
-  // Show onboarding tutorial for first-time users
-  if (!state.onboardingComplete) {
-    return (
-      <>
-        <div className="max-w-lg mx-auto min-h-dvh bg-kidzy-bg relative">
-          <Dashboard onNavigate={() => {}} />
-          <BottomNav active="dashboard" onNavigate={() => {}} />
-        </div>
-        <OnboardingTutorial />
-      </>
-    );
-  }
-
-  const navigate = (newPage, kidId = null) => {
-    setPage(newPage);
-    if (kidId) setSelectedKidId(kidId);
   };
 
-  const goHome = () => {
-    setPage('dashboard');
-    setSelectedKidId(null);
+  const handleNavigate = (page, kidId = null) => {
+    if (kidId) {
+      navigate(`/${page}?kid=${kidId}`);
+    } else {
+      navigate(`/${page}`);
+    }
   };
 
-  return (
+  const goHome = () => navigate('/dashboard');
+
+  // Wrapper for authenticated pages with bottom nav
+  const AuthLayout = ({ children }) => (
     <div className="max-w-lg mx-auto min-h-dvh bg-kidzy-bg relative">
       <ErrorBoundary showDetails>
-        {page === 'dashboard' && <Dashboard onNavigate={navigate} />}
-        {page === 'rewards' && <RewardsPage onBack={goHome} selectedKidId={selectedKidId} />}
-        {page === 'leaderboard' && <LeaderboardPage onBack={goHome} />}
-        {page === 'activity' && <ActivityPage onBack={goHome} />}
-        {page === 'settings' && <SettingsPage onBack={goHome} />}
+        {children}
       </ErrorBoundary>
-      <BottomNav active={page} onNavigate={navigate} />
+      <BottomNav active={location.pathname.replace('/', '') || 'dashboard'} onNavigate={handleNavigate} />
     </div>
+  );
+
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/" element={
+        !state.family ? (
+          <LandingPage onGetStarted={handleGetStarted} />
+        ) : !state.currentParentId && !state.kidMode ? (
+          <LandingPage onGetStarted={handleGetStarted} />
+        ) : (
+          <Navigate to="/dashboard" replace />
+        )
+      } />
+
+      <Route path="/setup" element={
+        !state.family ? <WelcomeScreen /> : <Navigate to="/dashboard" replace />
+      } />
+
+      <Route path="/login" element={
+        state.family && !state.currentParentId && !state.kidMode ? (
+          <LoginScreen />
+        ) : state.currentParentId ? (
+          <Navigate to="/dashboard" replace />
+        ) : (
+          <Navigate to="/" replace />
+        )
+      } />
+
+      {/* Kid mode */}
+      <Route path="/kid-mode" element={
+        state.kidMode ? (
+          <ErrorBoundary showDetails><KidDashboard /></ErrorBoundary>
+        ) : (
+          <Navigate to="/" replace />
+        )
+      } />
+
+      {/* Authenticated app routes */}
+      <Route path="/dashboard" element={
+        state.currentParentId ? (
+          <>
+            <AuthLayout>
+              <Dashboard onNavigate={handleNavigate} />
+            </AuthLayout>
+            {!state.onboardingComplete && <OnboardingTutorial />}
+          </>
+        ) : (
+          <Navigate to="/login" replace />
+        )
+      } />
+
+      <Route path="/rewards" element={
+        state.currentParentId ? (
+          <AuthLayout>
+            <RewardsPage onBack={goHome} selectedKidId={new URLSearchParams(location.search).get('kid')} />
+          </AuthLayout>
+        ) : (
+          <Navigate to="/login" replace />
+        )
+      } />
+
+      <Route path="/leaderboard" element={
+        state.currentParentId ? (
+          <AuthLayout><LeaderboardPage onBack={goHome} /></AuthLayout>
+        ) : (
+          <Navigate to="/login" replace />
+        )
+      } />
+
+      <Route path="/activity" element={
+        state.currentParentId ? (
+          <AuthLayout><ActivityPage onBack={goHome} /></AuthLayout>
+        ) : (
+          <Navigate to="/login" replace />
+        )
+      } />
+
+      <Route path="/settings" element={
+        state.currentParentId ? (
+          <AuthLayout><SettingsPage onBack={goHome} /></AuthLayout>
+        ) : (
+          <Navigate to="/login" replace />
+        )
+      } />
+
+      {/* Catch-all → redirect to landing */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

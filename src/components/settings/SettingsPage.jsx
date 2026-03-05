@@ -3,12 +3,14 @@ import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import { exportData, importData } from '../../utils/storage';
 import Modal from '../shared/Modal';
 import Avatar from '../shared/Avatar';
+import AddKidModal from '../dashboard/AddKidModal';
 import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Plus, Edit3, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function SettingsPage({ onBack }) {
   const state = useKidzy();
   const dispatch = useKidzyDispatch();
   const [showAddParent, setShowAddParent] = useState(false);
+  const [showAddKid, setShowAddKid] = useState(false);
   const [importStatus, setImportStatus] = useState(null);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddItem, setShowAddItem] = useState(null); // categoryId
@@ -71,11 +73,23 @@ export default function SettingsPage({ onBack }) {
 
         {/* Kids Section */}
         <div>
-          <h2 className="text-lg font-display font-bold flex items-center gap-2 mb-3"><Baby size={20} className="text-kidzy-pink" /> Kids</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-display font-bold flex items-center gap-2"><Baby size={20} className="text-kidzy-pink" /> Kids</h2>
+            <button onClick={() => setShowAddKid(true)} className="text-sm font-semibold text-kidzy-pink flex items-center gap-1">
+              <UserPlus size={16} /> Add Kid
+            </button>
+          </div>
           <div className="space-y-2">
             {state.kids.length === 0 ? (
               <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
-                <p className="text-kidzy-gray text-sm">No kids added yet. Add kids from the dashboard!</p>
+                <div className="text-3xl mb-2">{'\u{1F476}'}</div>
+                <p className="text-kidzy-gray text-sm mb-3">No kids added yet</p>
+                <button
+                  onClick={() => setShowAddKid(true)}
+                  className="bg-gradient-to-r from-kidzy-pink to-kidzy-orange text-white font-bold py-2 px-4 rounded-xl text-sm"
+                >
+                  <Plus size={14} className="inline mr-1" /> Add Your First Kid
+                </button>
               </div>
             ) : state.kids.map(kid => (
               <div key={kid.id} className="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border border-gray-100">
@@ -250,6 +264,7 @@ export default function SettingsPage({ onBack }) {
       </div>
 
       <AddParentModal isOpen={showAddParent} onClose={() => setShowAddParent(false)} />
+      <AddKidModal isOpen={showAddKid} onClose={() => setShowAddKid(false)} />
       <AddCategoryModal isOpen={showAddCategory} onClose={() => setShowAddCategory(false)} />
       {showAddItem && <AddBehaviorItemModal isOpen={true} onClose={() => setShowAddItem(null)} categoryId={showAddItem} />}
     </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import { verifyPin, hashPin, isLockedOut, recordFailedAttempt, resetLockout } from '../../utils/storage';
 import Avatar from '../shared/Avatar';
-import { Lock, LogIn, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Lock, LogIn, ShieldAlert, ArrowLeft, KeyRound, AlertTriangle } from 'lucide-react';
 
 export default function LoginScreen() {
   const state = useKidzy();
@@ -12,6 +12,7 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [selectedParent, setSelectedParent] = useState(state.parents[0]?.id || null);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [showForgotPin, setShowForgotPin] = useState(false);
 
   const hasPIN = state.family?.pin && state.family.pin.length > 0;
 
@@ -60,10 +61,22 @@ export default function LoginScreen() {
     dispatch({ type: 'SET_KID_MODE', payload: kidId });
   };
 
+  const handleForgotPinReset = () => {
+    // Remove the PIN so parent can log in without it
+    dispatch({ type: 'SET_FAMILY_PIN', payload: null });
+    setShowForgotPin(false);
+    setPin('');
+    setError('');
+    resetLockout();
+    // Auto-login to the first parent
+    dispatch({ type: 'SET_CURRENT_PARENT', payload: state.parents[0]?.id });
+  };
+
   const goBack = () => {
     setMode(null);
     setPin('');
     setError('');
+    setShowForgotPin(false);
   };
 
   // === PARENT LOGIN (with optional PIN) ===
@@ -96,8 +109,37 @@ export default function LoginScreen() {
             ))}
           </div>
 
+          {/* Forgot PIN confirmation */}
+          {showForgotPin && (
+            <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-xl animate-slide-up">
+              <div className="flex items-start gap-3">
+                <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-bold text-amber-800 text-sm">Reset your PIN?</h3>
+                  <p className="text-amber-700 text-xs mt-1">
+                    This will remove PIN protection. You can set a new PIN in Settings after logging in.
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={handleForgotPinReset}
+                      className="px-4 py-1.5 bg-amber-500 text-white font-bold rounded-lg text-xs"
+                    >
+                      Reset PIN
+                    </button>
+                    <button
+                      onClick={() => setShowForgotPin(false)}
+                      className="px-4 py-1.5 bg-gray-200 text-gray-600 font-medium rounded-lg text-xs"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* PIN entry (only if PIN is set) */}
-          {hasPIN ? (
+          {hasPIN && !showForgotPin ? (
             <div className="mb-4">
               <label className="block text-sm font-semibold text-kidzy-dark mb-1">
                 <Lock size={14} className="inline mr-1" /> Your PIN
@@ -120,16 +162,26 @@ export default function LoginScreen() {
                 </div>
               )}
               {error && !lockoutSeconds && <p className="text-red-500 text-sm mt-1 text-center">{error}</p>}
+
+              {/* Forgot PIN link */}
+              <button
+                onClick={() => setShowForgotPin(true)}
+                className="w-full mt-2 text-xs text-kidzy-gray hover:text-kidzy-purple transition-colors font-medium flex items-center justify-center gap-1"
+              >
+                <KeyRound size={12} /> Forgot PIN?
+              </button>
             </div>
           ) : null}
 
-          <button
-            onClick={handleLogin}
-            disabled={hasPIN ? (pin.length < 4 || lockoutSeconds > 0) : false}
-            className="w-full bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:shadow-xl transition-all"
-          >
-            <LogIn size={18} /> {hasPIN ? 'Sign In' : `Continue as ${state.parents.find(p => p.id === selectedParent)?.name || 'Parent'}`}
-          </button>
+          {!showForgotPin && (
+            <button
+              onClick={handleLogin}
+              disabled={hasPIN ? (pin.length < 4 || lockoutSeconds > 0) : false}
+              className="w-full bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:shadow-xl transition-all"
+            >
+              <LogIn size={18} /> {hasPIN ? 'Sign In' : `Continue as ${state.parents.find(p => p.id === selectedParent)?.name || 'Parent'}`}
+            </button>
+          )}
         </div>
       </div>
     );

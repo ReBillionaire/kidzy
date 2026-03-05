@@ -83,7 +83,7 @@ export default function LandingPage({ onGetStarted }) {
 
           <p className="text-sm opacity-70 mt-4">Works on any device {'\u{2022}'} Quick setup {'\u{2022}'} 30 seconds to start</p>
 
-          <div className="inline-flex items-center gap-2 bg-white/12 px-4 py-2 rounded-xl text-sm font-semibold mt-4">
+          <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl text-sm font-semibold mt-4">
             <Shield size={16} /> Your data stays on your device. Always private.
           </div>
         </div>
@@ -253,7 +253,7 @@ export default function LandingPage({ onGetStarted }) {
       <footer className="py-8 text-center border-t border-gray-200 px-4">
         <div className="font-display font-bold text-xl text-kidzy-purple mb-2">{'\u{2B50}'} Kidzy</div>
         <p className="text-kidzy-gray text-sm">Making good habits fun for families everywhere.</p>
-        <p className="text-kidzy-gray text-xs mt-2">100% free {'\u{2022}'} Privacy-first {'\u{2022}'} Works offline</p>
+        <p className="text-kidzy-gray text-xs mt-2">100% free {'\u{2022}'} Privacy-first {'\u{2022}'} No account required</p>
       </footer>
 
       {/* Float animation */}

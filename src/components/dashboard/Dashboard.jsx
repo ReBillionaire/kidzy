@@ -104,9 +104,9 @@ export default function Dashboard({ onNavigate }) {
           <h2 className="text-lg font-display font-bold text-kidzy-dark">Your Kids</h2>
           <button
             onClick={() => setShowAddKid(true)}
-            className="flex items-center gap-1 text-sm font-semibold text-kidzy-purple hover:text-kidzy-purple-dark transition-colors"
+            className="flex items-center gap-1 text-sm font-bold text-white bg-kidzy-purple hover:bg-kidzy-purple-dark px-3 py-1.5 rounded-lg transition-colors shadow-sm"
           >
-            <Plus size={16} /> Add Kid
+            <Plus size={14} /> Add Kid
           </button>
         </div>
 

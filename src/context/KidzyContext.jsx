@@ -31,8 +31,8 @@ function kidzyReducer(state, action) {
         };
       }
       case 'SET_FAMILY_PIN': {
-        if (!action.payload) return state;
-        return { ...state, family: { ...state.family, pin: action.payload } };
+        // Allow null to remove PIN protection
+        return { ...state, family: { ...state.family, pin: action.payload || null } };
       }
       case 'SET_CURRENT_PARENT': {
         if (!validateId(action.payload)) return state;
