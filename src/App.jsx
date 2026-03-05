@@ -57,12 +57,16 @@ function AppContent() {
     }
   }, [state?.family, state?.currentParentId, state?.kidMode, location.pathname, navigate, state]);
 
-  // When user logs out, redirect
+  // When user logs out, redirect to landing (only if on an app route)
   useEffect(() => {
     if (state?.loggedOut) {
-      navigate('/', { replace: true });
+      const path = location.pathname;
+      const isAppRoute = ['/dashboard', '/leaderboard', '/rewards', '/activity', '/settings'].some(r => path.startsWith(r));
+      if (isAppRoute) {
+        navigate('/login', { replace: true });
+      }
     }
-  }, [state?.loggedOut, navigate]);
+  }, [state?.loggedOut, navigate, location.pathname]);
 
   if (!state) return null;
 
