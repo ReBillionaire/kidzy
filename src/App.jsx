@@ -12,7 +12,6 @@ import RewardsPage from './components/rewards/RewardsPage';
 import LeaderboardPage from './components/leaderboard/LeaderboardPage';
 import ActivityPage from './components/activity/ActivityPage';
 import SettingsPage from './components/settings/SettingsPage';
-import ChoresPage from './components/chores/ChoresPage';
 import BottomNav from './components/shared/BottomNav';
 
 function AppContent() {
@@ -25,7 +24,7 @@ function AppContent() {
     if (!state) return;
 
     const path = location.pathname;
-    const isAppRoute = ['/dashboard', '/leaderboard', '/rewards', '/activity', '/settings', '/chores'].some(r => path.startsWith(r));
+    const isAppRoute = ['/dashboard', '/leaderboard', '/rewards', '/activity', '/settings'].some(r => path.startsWith(r));
     const isAuthRoute = ['/login', '/setup', '/kid-mode'].includes(path);
 
     // No family → must be on landing or setup
@@ -62,7 +61,7 @@ function AppContent() {
   useEffect(() => {
     if (state?.loggedOut) {
       const path = location.pathname;
-      const isAppRoute = ['/dashboard', '/leaderboard', '/rewards', '/activity', '/settings', '/chores'].some(r => path.startsWith(r));
+      const isAppRoute = ['/dashboard', '/leaderboard', '/rewards', '/activity', '/settings'].some(r => path.startsWith(r));
       if (isAppRoute) {
         navigate('/login', { replace: true });
       }
@@ -170,14 +169,6 @@ function AppContent() {
       <Route path="/activity" element={
         state.currentParentId ? (
           <AuthLayout><ActivityPage onBack={goHome} /></AuthLayout>
-        ) : (
-          <Navigate to="/login" replace />
-        )
-      } />
-
-      <Route path="/chores" element={
-        state.currentParentId ? (
-          <AuthLayout><ChoresPage onBack={goHome} /></AuthLayout>
         ) : (
           <Navigate to="/login" replace />
         )

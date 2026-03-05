@@ -1,11 +1,30 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import { getCompletedBehaviorsToday, getRandomEncouragement, rollMultiplier } from '../../utils/helpers';
 import Modal from '../shared/Modal';
 import ConfettiEffect from '../shared/ConfettiEffect';
 import DollarBadge from '../shared/DollarBadge';
-import { Check, Plus, Sparkles, Zap, Undo2, Info } from 'lucide-react';
+import { Check, Plus, Sparkles, Zap, Undo2, Info, CheckCircle2, Circle, ClipboardList } from 'lucide-react';
 import { playCoinSound, playBonusSound, vibrateEarn, vibrateBonus } from '../../utils/sounds';
+
+function isDueToday(chore) {
+  if (!chore.repeat || chore.repeat === 'none') return true;
+  const day = new Date().getDay();
+  if (chore.repeat === 'daily') return true;
+  if (chore.repeat === 'weekdays') return day >= 1 && day <= 5;
+  if (chore.repeat === 'weekly') {
+    const created = new Date(chore.createdAt);
+    const today = new Date();
+    const diffDays = Math.floor((today - created) / 86400000);
+    return diffDays % 7 === 0 || diffDays === 0;
+  }
+  return true;
+}
+
+function isCompletedToday(choreId, completions) {
+  const today = new Date().toISOString().split('T')[0];
+  return completions.some(c => c.choreId === choreId && c.date === today);
+}
 
 export default function QuickEarnModal({ kidId, isOpen, onClose }) {
   const state = useKidzy();
@@ -23,6 +42,12 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
   const completedToday = getCompletedBehaviorsToday(kidId, state.transactions);
   const soundEnabled = state.settings?.soundEnabled !== false;
   const hapticEnabled = state.settings?.hapticEnabled !== false;
+
+  // Chores data
+  const completions = state.choreCompletions || [];
+  const todayChores = useMemo(() => {
+    return (state.chores || []).filter(c => c.kidId === kidId).filter(isDueToday);
+  }, [state.chores, kidId]);
 
   // Cleanup undo timer on unmount
   useEffect(() => {
@@ -163,6 +188,67 @@ export default function QuickEarnModal({ kidId, isOpen, onClose }) {
         )}
 
         <div className="space-y-4 max-h-[55dvh] overflow-y-auto">
+          {/* Today's Chores section */}
+          {todayChores.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <ClipboardList size={18} className="text-teal-500" />
+                <h4 className="font-display font-bold text-kidzy-dark">Today's Chores</h4>
+                <span className="text-xs text-kidzy-gray ml-auto">
+                  {todayChores.filter(c => isCompletedToday(c.id, completions)).length}/{todayChores.length} done
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {todayChores.map(chore => {
+                  const done = isCompletedToday(chore.id, completions);
+                  return (
+                    <button
+                      key={chore.id}
+                      onClick={() => {
+                        if (done) return;
+                        dispatch({
+                          type: 'COMPLETE_CHORE',
+                          payload: { choreId: chore.id, kidId, date: new Date().toISOString().split('T')[0] }
+                        });
+                        dispatch({
+                          type: 'ADD_TRANSACTION',
+                          payload: {
+                            kidId,
+                            parentId: state.currentParentId || 'system',
+                            type: 'earn',
+                            amount: chore.dollarValue,
+                            reason: `Chore: ${chore.name}`,
+                            category: 'Chore',
+                            choreId: chore.id,
+                          }
+                        });
+                        if (soundEnabled) playCoinSound();
+                        if (hapticEnabled) vibrateEarn();
+                        setLastEarned({ amount: chore.dollarValue, multiplier: 1, message: getRandomEncouragement() });
+                        setShowConfetti(true);
+                        setTimeout(() => setShowConfetti(false), 2000);
+                      }}
+                      disabled={done}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left ${
+                        done
+                          ? 'bg-green-50 border-green-200'
+                          : 'bg-white border-gray-100 hover:border-teal-300 hover:bg-teal-50/50 active:scale-[0.98]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {done ? <CheckCircle2 size={16} className="text-green-500 flex-shrink-0" /> : <Circle size={16} className="text-gray-300 flex-shrink-0" />}
+                        <span className="text-lg flex-shrink-0">{chore.icon}</span>
+                        <span className={`text-sm ${done ? 'text-green-700 line-through' : 'text-kidzy-dark'}`}>{chore.name}</span>
+                      </div>
+                      <DollarBadge amount={chore.dollarValue} size="sm" showPlus />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Behavior categories */}
           {state.behaviorCategories.map(cat => (
             <div key={cat.id}>
               <div className="flex items-center gap-2 mb-2">

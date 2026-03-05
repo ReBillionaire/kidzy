@@ -1,10 +1,35 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import { exportData, importData } from '../../utils/storage';
 import Modal from '../shared/Modal';
 import Avatar from '../shared/Avatar';
+import DollarBadge from '../shared/DollarBadge';
 import AddKidModal from '../dashboard/AddKidModal';
-import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Plus, Edit3, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Plus, Edit3, X, ChevronDown, ChevronUp, ClipboardList, Sparkles, RotateCcw, Clock, CheckCircle2, Circle } from 'lucide-react';
+
+const CHORE_ICONS = ['\u{1F9F9}', '\u{1F37D}\u{FE0F}', '\u{1F6CF}\u{FE0F}', '\u{1F4DA}', '\u{1F415}', '\u{1F5D1}\u{FE0F}', '\u{1F455}', '\u{1F331}', '\u{1F9FA}', '\u{1F6BF}', '\u{1F9B7}', '\u{1F392}', '\u{1F9F8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F58C}\u{FE0F}'];
+
+const REPEAT_OPTIONS = [
+  { value: 'none', label: 'One-time' },
+  { value: 'daily', label: 'Every day' },
+  { value: 'weekdays', label: 'Weekdays' },
+  { value: 'weekly', label: 'Weekly' },
+];
+
+const PRESET_CHORES = [
+  { name: 'Make the bed', icon: '\u{1F6CF}\u{FE0F}', dollarValue: 2, repeat: 'daily' },
+  { name: 'Brush teeth', icon: '\u{1F9B7}', dollarValue: 1, repeat: 'daily' },
+  { name: 'Clean room', icon: '\u{1F9F9}', dollarValue: 5, repeat: 'weekly' },
+  { name: 'Do homework', icon: '\u{1F4DA}', dollarValue: 3, repeat: 'weekdays' },
+  { name: 'Set the table', icon: '\u{1F37D}\u{FE0F}', dollarValue: 2, repeat: 'daily' },
+  { name: 'Take out trash', icon: '\u{1F5D1}\u{FE0F}', dollarValue: 3, repeat: 'daily' },
+  { name: 'Feed the pet', icon: '\u{1F415}', dollarValue: 2, repeat: 'daily' },
+  { name: 'Put away laundry', icon: '\u{1F455}', dollarValue: 3, repeat: 'weekly' },
+  { name: 'Water plants', icon: '\u{1F331}', dollarValue: 2, repeat: 'daily' },
+  { name: 'Pack school bag', icon: '\u{1F392}', dollarValue: 1, repeat: 'weekdays' },
+  { name: 'Practice instrument', icon: '\u{1F3B5}', dollarValue: 4, repeat: 'daily' },
+  { name: 'Read for 20 mins', icon: '\u{1F4DA}', dollarValue: 3, repeat: 'daily' },
+];
 
 export default function SettingsPage({ onBack }) {
   const state = useKidzy();
@@ -15,6 +40,9 @@ export default function SettingsPage({ onBack }) {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddItem, setShowAddItem] = useState(null); // categoryId
   const [expandedCat, setExpandedCat] = useState(null);
+  const [showAddChore, setShowAddChore] = useState(null); // kidId
+  const [showPresets, setShowPresets] = useState(null); // kidId
+  const [expandedChoreKid, setExpandedChoreKid] = useState(state.kids[0]?.id || null);
   const fileRef = useRef(null);
 
   const soundEnabled = state.settings?.soundEnabled !== false;
@@ -109,6 +137,106 @@ export default function SettingsPage({ onBack }) {
             ))}
           </div>
         </div>
+
+        {/* Chores Management */}
+        {state.kids.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-display font-bold flex items-center gap-2"><ClipboardList size={20} className="text-teal-500" /> Chores</h2>
+            </div>
+            <p className="text-xs text-kidzy-gray mb-3">Assign daily chores that appear on the dashboard. Kids earn K$ by checking them off.</p>
+
+            {/* Kid tabs for chores */}
+            {state.kids.length > 1 && (
+              <div className="flex gap-2 mb-3 overflow-x-auto">
+                {state.kids.map(k => (
+                  <button
+                    key={k.id}
+                    onClick={() => setExpandedChoreKid(k.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                      expandedChoreKid === k.id ? 'bg-teal-500 text-white shadow-sm' : 'bg-white text-kidzy-gray border border-gray-200'
+                    }`}
+                  >
+                    <Avatar src={k.avatar} name={k.name} size="xs" />
+                    {k.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Chore list for selected kid */}
+            {(() => {
+              const kidId = expandedChoreKid || state.kids[0]?.id;
+              const kidChores = (state.chores || []).filter(c => c.kidId === kidId);
+              const kidName = state.kids.find(k => k.id === kidId)?.name || 'Kid';
+              return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  {kidChores.length === 0 ? (
+                    <div className="p-4 text-center">
+                      <p className="text-kidzy-gray text-sm mb-3">No chores for {kidName} yet</p>
+                      <div className="flex gap-2 justify-center">
+                        <button
+                          onClick={() => setShowPresets(kidId)}
+                          className="bg-gradient-to-r from-teal-400 to-cyan-500 text-white font-bold py-2 px-4 rounded-xl text-xs"
+                        >
+                          <Sparkles size={12} className="inline mr-1" /> Quick Add Presets
+                        </button>
+                        <button
+                          onClick={() => setShowAddChore(kidId)}
+                          className="text-teal-600 font-semibold text-xs border border-teal-200 py-2 px-4 rounded-xl hover:bg-teal-50"
+                        >
+                          <Plus size={12} className="inline mr-0.5" /> Custom
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {kidChores.map(chore => (
+                        <div key={chore.id} className="p-3 flex items-center gap-2">
+                          <span className="text-lg">{chore.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-kidzy-dark truncate">{chore.name}</p>
+                            <p className="text-[10px] text-kidzy-gray flex items-center gap-1">
+                              {chore.repeat === 'daily' && <><RotateCcw size={8} /> Daily</>}
+                              {chore.repeat === 'weekdays' && <><RotateCcw size={8} /> Weekdays</>}
+                              {chore.repeat === 'weekly' && <><RotateCcw size={8} /> Weekly</>}
+                              {(!chore.repeat || chore.repeat === 'none') && <><Clock size={8} /> One-time</>}
+                            </p>
+                          </div>
+                          <span className="text-xs font-bold text-teal-600">{chore.dollarValue} K$</span>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Remove "${chore.name}"?`)) {
+                                dispatch({ type: 'REMOVE_CHORE', payload: chore.id });
+                              }
+                            }}
+                            className="p-1.5 text-gray-300 hover:text-red-400 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="p-3 flex gap-2">
+                        <button
+                          onClick={() => setShowPresets(kidId)}
+                          className="flex-1 p-2 border-2 border-dashed border-teal-200 rounded-lg text-teal-600 text-xs font-semibold hover:bg-teal-50 transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Sparkles size={12} /> Presets
+                        </button>
+                        <button
+                          onClick={() => setShowAddChore(kidId)}
+                          className="flex-1 p-2 border-2 border-dashed border-teal-200 rounded-lg text-teal-600 text-xs font-semibold hover:bg-teal-50 transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Plus size={12} /> Custom
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
 
         {/* Sound & Haptic Settings */}
         <div>
@@ -267,6 +395,8 @@ export default function SettingsPage({ onBack }) {
       <AddKidModal isOpen={showAddKid} onClose={() => setShowAddKid(false)} />
       <AddCategoryModal isOpen={showAddCategory} onClose={() => setShowAddCategory(false)} />
       {showAddItem && <AddBehaviorItemModal isOpen={true} onClose={() => setShowAddItem(null)} categoryId={showAddItem} />}
+      {showAddChore && <AddChoreModal isOpen={true} onClose={() => setShowAddChore(null)} kidId={showAddChore} />}
+      {showPresets && <PresetChoresModal isOpen={true} onClose={() => setShowPresets(null)} kidId={showPresets} existingChores={(state.chores || []).filter(c => c.kidId === showPresets)} />}
     </div>
   );
 }
@@ -336,6 +466,133 @@ function AddCategoryModal({ isOpen, onClose }) {
       <button onClick={handleAdd} disabled={!name.trim()}
         className="w-full mt-6 bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
         <Plus size={18} className="inline mr-1" /> Add Category
+      </button>
+    </Modal>
+  );
+}
+
+function AddChoreModal({ isOpen, onClose, kidId }) {
+  const dispatch = useKidzyDispatch();
+  const [name, setName] = useState('');
+  const [dollarValue, setDollarValue] = useState('');
+  const [icon, setIcon] = useState('\u{1F9F9}');
+  const [repeat, setRepeat] = useState('daily');
+
+  const handleAdd = () => {
+    if (!name.trim() || !dollarValue) return;
+    dispatch({
+      type: 'ADD_CHORE',
+      payload: { kidId, name: name.trim(), dollarValue: parseFloat(dollarValue), icon, repeat }
+    });
+    setName(''); setDollarValue(''); setIcon('\u{1F9F9}'); setRepeat('daily');
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Add Custom Chore">
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Pick an Icon</label>
+          <div className="flex flex-wrap gap-2">
+            {CHORE_ICONS.map(ic => (
+              <button
+                key={ic}
+                onClick={() => setIcon(ic)}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all ${
+                  icon === ic ? 'bg-teal-100 ring-2 ring-teal-400 scale-110' : 'bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                {ic}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Chore Name</label>
+          <input type="text" placeholder="e.g., Make the bed" value={name} onChange={e => setName(e.target.value)}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-400 focus:outline-none" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-kidzy-dark mb-1">K$ Reward</label>
+          <input type="number" placeholder="e.g., 3" value={dollarValue} onChange={e => setDollarValue(e.target.value)} min="1" max="50"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-400 focus:outline-none" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Repeat</label>
+          <div className="grid grid-cols-2 gap-2">
+            {REPEAT_OPTIONS.map(opt => (
+              <button key={opt.value} onClick={() => setRepeat(opt.value)}
+                className={`py-2.5 px-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+                  repeat === opt.value ? 'border-teal-400 bg-teal-50 text-teal-700' : 'border-gray-200 text-kidzy-gray hover:border-teal-200'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <button onClick={handleAdd} disabled={!name.trim() || !dollarValue}
+        className="w-full mt-6 bg-gradient-to-r from-teal-400 to-cyan-500 text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
+        <Plus size={18} className="inline mr-1" /> Add Chore
+      </button>
+    </Modal>
+  );
+}
+
+function PresetChoresModal({ isOpen, onClose, kidId, existingChores }) {
+  const dispatch = useKidzyDispatch();
+  const [selected, setSelected] = useState(new Set());
+  const existingNames = new Set(existingChores.map(c => c.name));
+
+  const toggle = (index) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index); else next.add(index);
+      return next;
+    });
+  };
+
+  const handleAddSelected = () => {
+    selected.forEach(index => {
+      const preset = PRESET_CHORES[index];
+      if (!existingNames.has(preset.name)) {
+        dispatch({ type: 'ADD_CHORE', payload: { kidId, name: preset.name, dollarValue: preset.dollarValue, icon: preset.icon, repeat: preset.repeat } });
+      }
+    });
+    setSelected(new Set());
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Quick Add Chores">
+      <p className="text-xs text-kidzy-gray mb-3">Select chores to add. Already-assigned chores are greyed out.</p>
+      <div className="space-y-1.5 max-h-[55dvh] overflow-y-auto">
+        {PRESET_CHORES.map((preset, i) => {
+          const alreadyExists = existingNames.has(preset.name);
+          const isSelected = selected.has(i);
+          return (
+            <button key={i} onClick={() => !alreadyExists && toggle(i)} disabled={alreadyExists}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                alreadyExists ? 'border-gray-100 bg-gray-50 opacity-50'
+                  : isSelected ? 'border-teal-400 bg-teal-50'
+                  : 'border-gray-100 hover:border-teal-200 hover:bg-teal-50/30'
+              }`}>
+              <span className="text-xl">{preset.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-kidzy-dark truncate">{preset.name}</p>
+                <p className="text-xs text-kidzy-gray">{preset.repeat === 'daily' ? 'Daily' : preset.repeat === 'weekdays' ? 'Weekdays' : 'Weekly'}</p>
+              </div>
+              <span className="text-xs font-bold text-teal-600">{preset.dollarValue} K$</span>
+              {alreadyExists ? <CheckCircle2 size={16} className="text-gray-400" />
+                : isSelected ? <CheckCircle2 size={20} className="text-teal-500" />
+                : <Circle size={20} className="text-gray-300" />}
+            </button>
+          );
+        })}
+      </div>
+      <button onClick={handleAddSelected} disabled={selected.size === 0}
+        className="w-full mt-4 bg-gradient-to-r from-teal-400 to-cyan-500 text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
+        <Plus size={18} className="inline mr-1" /> Add {selected.size} Chore{selected.size !== 1 ? 's' : ''}
       </button>
     </Modal>
   );

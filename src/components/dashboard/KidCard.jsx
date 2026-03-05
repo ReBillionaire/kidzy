@@ -2,9 +2,10 @@ import { useState } from 'react';
 import Avatar from '../shared/Avatar';
 import DollarBadge from '../shared/DollarBadge';
 import StreakCalendar from './StreakCalendar';
+import TodayChores from './TodayChores';
 import { Plus, Minus, Gift, Flame, ChevronDown, ChevronUp } from 'lucide-react';
 
-export default function KidCard({ kid, balance, todayEarnings, weeklyEarnings, streak, transactions, onEarn, onDeduct, onViewRewards }) {
+export default function KidCard({ kid, balance, todayEarnings, weeklyEarnings, streak, transactions, onEarn, onDeduct, onViewRewards, onManageChores }) {
   const [pressed, setPressed] = useState(null);
   const [showCalendar, setShowCalendar] = useState(false);
 
@@ -43,8 +44,11 @@ export default function KidCard({ kid, balance, todayEarnings, weeklyEarnings, s
           </div>
         </div>
 
+        {/* Today's Chores — inline checklist */}
+        <TodayChores kidId={kid.id} onManageChores={onManageChores} />
+
         {/* Action Buttons — clearer labels */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 mt-3">
           <button
             onClick={onEarn}
             onTouchStart={() => setPressed('earn')}

@@ -136,6 +136,7 @@ export default function Dashboard({ onNavigate }) {
                 onEarn={() => setShowQuickEarn(kid.id)}
                 onDeduct={() => setShowDeduct(kid.id)}
                 onViewRewards={() => onNavigate('rewards', kid.id)}
+                onManageChores={() => onNavigate('settings')}
               />
             ))}
           </div>
