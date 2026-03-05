@@ -90,7 +90,7 @@ export default function RewardsPage({ onBack, selectedKidId }) {
         {kid && (
           <div className="mt-3 text-center">
             <p className="text-white/80 text-sm">{kid.name}'s Balance</p>
-            <p className="text-4xl font-display font-bold">${balance} <span className="text-lg">K$</span></p>
+            <p className="text-4xl font-display font-bold">{balance} <span className="text-lg">K$</span></p>
           </div>
         )}
       </div>

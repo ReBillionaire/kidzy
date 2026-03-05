@@ -59,7 +59,7 @@ export default function LandingPage({ onGetStarted }) {
 
         <div className="relative z-10 text-center max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-semibold mb-5">
-            {'\u{2728}'} 100% Free {'\u{2022}'} No Signup Required
+            {'\u{2728}'} 100% Free {'\u{2022}'} Works on Any Device
           </div>
 
           <h1 className="font-display font-bold text-4xl sm:text-5xl md:text-6xl leading-tight mb-5">
@@ -81,7 +81,7 @@ export default function LandingPage({ onGetStarted }) {
             {'\u{1F680}'} Start Using Kidzy — It's Free
           </button>
 
-          <p className="text-sm opacity-70 mt-4">Works on any device {'\u{2022}'} No account needed {'\u{2022}'} 30-second setup</p>
+          <p className="text-sm opacity-70 mt-4">Works on any device {'\u{2022}'} Quick setup {'\u{2022}'} 30 seconds to start</p>
 
           <div className="inline-flex items-center gap-2 bg-white/12 px-4 py-2 rounded-xl text-sm font-semibold mt-4">
             <Shield size={16} /> Your data stays on your device. Always private.
@@ -101,8 +101,8 @@ export default function LandingPage({ onGetStarted }) {
             <div className="p-4 min-h-[380px]">
               <div className="bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white -mx-4 -mt-4 px-4 pt-5 pb-7 rounded-b-3xl text-center mb-4">
                 <h3 className="font-display font-semibold text-sm">Smith Family</h3>
-                <div className="text-3xl font-display font-bold mt-1">$47 K$</div>
-                <div className="text-[11px] opacity-80 mt-1">+$12 earned today</div>
+                <div className="text-3xl font-display font-bold mt-1">47 K$</div>
+                <div className="text-[11px] opacity-80 mt-1">+12 K$ earned today</div>
               </div>
 
               {[
@@ -115,7 +115,7 @@ export default function LandingPage({ onGetStarted }) {
                     <div className="font-bold text-xs">{kid.name}</div>
                     <div className="text-[10px] text-kidzy-gray">{'\u{1F525}'} {kid.streak} day streak</div>
                   </div>
-                  <div className="bg-green-50 text-green-700 font-bold text-xs px-2 py-1 rounded-lg">${kid.amount}</div>
+                  <div className="bg-green-50 text-green-700 font-bold text-xs px-2 py-1 rounded-lg">{kid.amount} K$</div>
                 </div>
               ))}
 

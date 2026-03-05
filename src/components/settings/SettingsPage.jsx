@@ -161,7 +161,7 @@ export default function SettingsPage({ onBack }) {
                     {cat.items.map(item => (
                       <div key={item.id} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2">
                         <span className="text-sm flex-1">{item.name}</span>
-                        <span className="text-xs font-bold text-kidzy-purple">${item.dollarValue}</span>
+                        <span className="text-xs font-bold text-kidzy-purple">{item.dollarValue} K$</span>
                         <button
                           onClick={() => {
                             if (confirm(`Remove "${item.name}"?`)) {

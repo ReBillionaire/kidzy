@@ -11,8 +11,8 @@ const STEPS = [
   },
   {
     emoji: '\u{2795}',
-    title: 'Earn K$',
-    body: 'Tap the green Earn button on any kid\'s card to award K$ for completing behaviors like brushing teeth, doing homework, or being kind.',
+    title: 'Award K$',
+    body: 'Tap the green Award K$ button on any kid\'s card to give K$ for completing behaviors like brushing teeth, doing homework, or being kind.',
     color: 'from-green-400 to-emerald-500',
     icon: Plus,
   },

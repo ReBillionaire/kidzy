@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { KidzyProvider, useKidzy } from './context/KidzyContext';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 import LandingPage from './components/landing/LandingPage';
@@ -18,6 +18,14 @@ function AppContent() {
   const [page, setPage] = useState('dashboard');
   const [selectedKidId, setSelectedKidId] = useState(null);
   const [showSetup, setShowSetup] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
+
+  // When user logs out, show landing page again
+  useEffect(() => {
+    if (state?.loggedOut) {
+      setShowLanding(true);
+    }
+  }, [state?.loggedOut]);
 
   // No family yet -> Landing Page or Setup Flow
   if (!state?.family) {
@@ -32,8 +40,11 @@ function AppContent() {
     return <ErrorBoundary showDetails><KidDashboard /></ErrorBoundary>;
   }
 
-  // Family exists but no logged-in parent -> Login
+  // Family exists but no logged-in parent -> Landing first, then Login
   if (!state.currentParentId) {
+    if (showLanding) {
+      return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+    }
     return <LoginScreen />;
   }
 

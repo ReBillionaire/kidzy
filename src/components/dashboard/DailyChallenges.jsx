@@ -79,12 +79,12 @@ export default function DailyChallenges({ kidId, kidName, showKidName = false })
                     onClick={() => handleClaimChallenge(challenge)}
                     className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs shadow-sm animate-pulse"
                   >
-                    +${challenge.reward}
+                    +{challenge.reward} K$
                   </button>
                 ) : isCompleted ? (
-                  <span className="text-green-600 font-bold text-xs">+${challenge.reward}</span>
+                  <span className="text-green-600 font-bold text-xs">+{challenge.reward} K$</span>
                 ) : (
-                  <span className="text-kidzy-gray text-xs">${challenge.reward}</span>
+                  <span className="text-kidzy-gray text-xs">{challenge.reward} K$</span>
                 )}
               </div>
               {!isCompleted && (

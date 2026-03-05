@@ -57,7 +57,7 @@ export default function LeaderboardPage({ onBack }) {
               <span className="absolute -bottom-1 -right-1 text-2xl">👑</span>
             </div>
             <h2 className="text-2xl font-display font-bold mt-2">{topKid.name}</h2>
-            <p className="text-yellow-100">${topKid.weeklyNet} K$ this week</p>
+            <p className="text-yellow-100">{topKid.weeklyNet} K$ this week</p>
           </div>
         )}
 
@@ -130,8 +130,8 @@ export default function LeaderboardPage({ onBack }) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-kidzy-dark text-lg">+${kid.weeklyNet}</div>
-                    <p className="text-xs text-kidzy-gray">Total: ${totalBalance}</p>
+                    <div className="font-bold text-kidzy-dark text-lg">+{kid.weeklyNet} K$</div>
+                    <p className="text-xs text-kidzy-gray">Total: {totalBalance} K$</p>
                   </div>
                 </div>
                 <div className="mt-3 flex gap-2 items-center">
@@ -144,8 +144,8 @@ export default function LeaderboardPage({ onBack }) {
                     )}
                   </div>
                   <div className="flex gap-2 text-xs">
-                    <span className="text-green-600">+${kid.weeklyEarnings}</span>
-                    <span className="text-red-500">-${kid.weeklyDeductions}</span>
+                    <span className="text-green-600">+{kid.weeklyEarnings}</span>
+                    <span className="text-red-500">-{kid.weeklyDeductions}</span>
                   </div>
                 </div>
               </div>
@@ -177,8 +177,8 @@ export default function LeaderboardPage({ onBack }) {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-kidzy-dark truncate">{kid.name}</h3>
                   <div className="flex items-center gap-3 text-xs text-kidzy-gray">
-                    <span>Last: ${kid.lastWeek}</span>
-                    <span>This: ${kid.thisWeek}</span>
+                    <span>Last: {kid.lastWeek} K$</span>
+                    <span>This: {kid.thisWeek} K$</span>
                   </div>
                 </div>
                 <div className={`text-right font-bold text-lg ${

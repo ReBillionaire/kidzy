@@ -71,7 +71,7 @@ export default function DeductModal({ kidId, isOpen, onClose }) {
         <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-xl animate-bounce-in">
           <p className="text-amber-800 font-bold text-center mb-1">Confirm Deduction?</p>
           <p className="text-amber-700 text-center text-sm mb-3">
-            Deduct <span className="font-bold">${pendingDeduction.amount} K$</span> from {kid?.name} for &quot;{pendingDeduction.reason}&quot;?
+            Deduct <span className="font-bold">{pendingDeduction.amount} K$</span> from {kid?.name} for &quot;{pendingDeduction.reason}&quot;?
           </p>
           <div className="flex gap-2">
             <button
@@ -92,7 +92,7 @@ export default function DeductModal({ kidId, isOpen, onClose }) {
 
       {lastDeducted && !pendingDeduction && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-center animate-bounce-in">
-          <p className="text-red-700 font-bold">&minus;${lastDeducted.amount} K$</p>
+          <p className="text-red-700 font-bold">&minus;{lastDeducted.amount} K$</p>
           <p className="text-red-600 text-sm">{lastDeducted.reason}</p>
         </div>
       )}
@@ -108,7 +108,7 @@ export default function DeductModal({ kidId, isOpen, onClose }) {
               <span className="text-xl">{item.icon}</span>
               <span className="text-sm text-kidzy-dark">{item.reason}</span>
             </div>
-            <span className="text-sm font-bold text-red-500">&minus;${item.amount}</span>
+            <span className="text-sm font-bold text-red-500">&minus;{item.amount} K$</span>
           </button>
         ))}
 

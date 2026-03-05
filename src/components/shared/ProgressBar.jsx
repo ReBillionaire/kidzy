@@ -5,7 +5,7 @@ export default function ProgressBar({ value, max, color = '#7C3AED', height = 'h
     <div className={className}>
       {showLabel && (
         <div className="flex justify-between text-xs mb-1">
-          <span className="text-gray-500">${value} / ${max}</span>
+          <span className="text-gray-500">{value} / {max} K$</span>
           <span className="font-semibold" style={{ color }}>{percent}%</span>
         </div>
       )}
