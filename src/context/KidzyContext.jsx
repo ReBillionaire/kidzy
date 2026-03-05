@@ -31,14 +31,15 @@ function kidzyReducer(state, action) {
       }
       case 'SET_CURRENT_PARENT': {
         if (!validateId(action.payload)) return state;
-        return { ...state, currentParentId: action.payload, loggedOut: false };
+        return { ...state, currentParentId: action.payload, kidMode: null, loggedOut: false };
       }
       case 'LOGOUT': {
         return { ...state, currentParentId: null, kidMode: null, loggedOut: true };
       }
       case 'SET_KID_MODE': {
         if (action.payload && !validateId(action.payload)) return state;
-        return { ...state, kidMode: action.payload || null, currentParentId: null };
+        // Kid mode: set kidMode and clear parent, mark as not logged out so we don't auto-login
+        return { ...state, kidMode: action.payload || null, currentParentId: null, loggedOut: true };
       }
       // PARENTS
       case 'ADD_PARENT': {
@@ -76,9 +77,24 @@ function kidzyReducer(state, action) {
       }
       // BEHAVIORS
       case 'ADD_BEHAVIOR_CATEGORY': {
-        return { ...state, behaviorCategories: [...state.behaviorCategories, { id: generateId('cat'), ...action.payload, items: [] }] };
+        if (!validateString(action.payload?.name)) return state;
+        return { ...state, behaviorCategories: [...state.behaviorCategories, { id: generateId('cat'), ...action.payload, items: action.payload.items || [] }] };
+      }
+      case 'REMOVE_BEHAVIOR_CATEGORY': {
+        if (!validateId(action.payload)) return state;
+        return { ...state, behaviorCategories: state.behaviorCategories.filter(c => c.id !== action.payload) };
+      }
+      case 'UPDATE_BEHAVIOR_CATEGORY': {
+        if (!validateId(action.payload?.id)) return state;
+        return {
+          ...state,
+          behaviorCategories: state.behaviorCategories.map(cat =>
+            cat.id === action.payload.id ? { ...cat, ...action.payload } : cat
+          ),
+        };
       }
       case 'ADD_BEHAVIOR_ITEM': {
+        if (!validateId(action.payload?.categoryId)) return state;
         return {
           ...state,
           behaviorCategories: state.behaviorCategories.map(cat =>
@@ -178,7 +194,7 @@ function kidzyReducer(state, action) {
     }
   } catch (error) {
     console.error('Reducer error:', error, 'Action:', action.type);
-    return state; // Return unchanged state on error instead of crashing
+    return state;
   }
 }
 
@@ -190,12 +206,12 @@ export function KidzyProvider({ children }) {
     if (state) saveData(state);
   }, [state]);
 
-  // Auto-login after initial family setup (not after explicit logout)
+  // Auto-login after initial family setup (not after explicit logout or kid mode)
   useEffect(() => {
-    if (state?.family && state.parents.length > 0 && !state.currentParentId && !state.loggedOut) {
+    if (state?.family && state.parents.length > 0 && !state.currentParentId && !state.loggedOut && !state.kidMode) {
       dispatch({ type: 'SET_CURRENT_PARENT', payload: state.parents[0].id });
     }
-  }, [state?.family, state?.parents, state?.currentParentId, state?.loggedOut]);
+  }, [state?.family, state?.parents, state?.currentParentId, state?.loggedOut, state?.kidMode]);
 
   return (
     <KidzyContext.Provider value={state}>

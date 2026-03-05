@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
-import { getKidBalance, getKidEarningsToday, getStreak, getKidEarningsThisWeek } from '../../utils/helpers';
+import { getKidBalance, getKidEarningsToday, getStreak, getKidEarningsThisWeek, getLongestStreak, getDailyHigh } from '../../utils/helpers';
 import KidCard from './KidCard';
 import AddKidModal from './AddKidModal';
 import DailyChallenges from './DailyChallenges';
@@ -19,13 +19,20 @@ export default function Dashboard({ onNavigate }) {
 
   // Memoize expensive calculations
   const kidStats = useMemo(() => {
-    return state.kids.map(kid => ({
-      kid,
-      balance: getKidBalance(kid.id, state.transactions),
-      todayEarnings: getKidEarningsToday(kid.id, state.transactions),
-      weeklyEarnings: getKidEarningsThisWeek(kid.id, state.transactions),
-      streak: getStreak(kid.id, state.transactions),
-    }));
+    return state.kids.map(kid => {
+      const todayEarnings = getKidEarningsToday(kid.id, state.transactions);
+      const dailyHigh = getDailyHigh(kid.id, state.transactions);
+      return {
+        kid,
+        balance: getKidBalance(kid.id, state.transactions),
+        todayEarnings,
+        weeklyEarnings: getKidEarningsThisWeek(kid.id, state.transactions),
+        streak: getStreak(kid.id, state.transactions),
+        longestStreak: getLongestStreak(kid.id, state.transactions),
+        dailyHigh,
+        isNewHigh: todayEarnings > 0 && todayEarnings >= dailyHigh,
+      };
+    });
   }, [state.kids, state.transactions]);
 
   const totalFamilyDollars = useMemo(() => kidStats.reduce((sum, s) => sum + s.balance, 0), [kidStats]);
@@ -121,7 +128,7 @@ export default function Dashboard({ onNavigate }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {kidStats.map(({ kid, balance, todayEarnings: te, weeklyEarnings: we, streak }) => (
+            {kidStats.map(({ kid, balance, todayEarnings: te, weeklyEarnings: we, streak, longestStreak, dailyHigh, isNewHigh }) => (
               <KidCard
                 key={kid.id}
                 kid={kid}
@@ -129,6 +136,9 @@ export default function Dashboard({ onNavigate }) {
                 todayEarnings={te}
                 weeklyEarnings={we}
                 streak={streak}
+                longestStreak={longestStreak}
+                dailyHigh={dailyHigh}
+                isNewHigh={isNewHigh}
                 onEarn={() => setShowQuickEarn(kid.id)}
                 onDeduct={() => setShowDeduct(kid.id)}
                 onViewRewards={() => onNavigate('rewards', kid.id)}

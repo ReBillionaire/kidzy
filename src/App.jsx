@@ -5,6 +5,7 @@ import WelcomeScreen from './components/auth/WelcomeScreen';
 import LoginScreen from './components/auth/LoginScreen';
 import OnboardingTutorial from './components/onboarding/OnboardingTutorial';
 import Dashboard from './components/dashboard/Dashboard';
+import KidDashboard from './components/dashboard/KidDashboard';
 import RewardsPage from './components/rewards/RewardsPage';
 import LeaderboardPage from './components/leaderboard/LeaderboardPage';
 import ActivityPage from './components/activity/ActivityPage';
@@ -19,6 +20,11 @@ function AppContent() {
   // No family yet -> Welcome/Setup
   if (!state?.family) {
     return <WelcomeScreen />;
+  }
+
+  // Kid Mode — read-only dashboard for the child
+  if (state.kidMode) {
+    return <KidDashboard />;
   }
 
   // Family exists but no logged-in parent -> Login
