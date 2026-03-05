@@ -1,10 +1,10 @@
-import { Home, Medal, Gift, ScrollText, Settings } from 'lucide-react';
+import { Home, Medal, Gift, ClipboardList, Settings } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Home', icon: Home },
-  { key: 'leaderboard', label: 'Board', icon: Medal },
+  { key: 'chores', label: 'Chores', icon: ClipboardList },
   { key: 'rewards', label: 'Rewards', icon: Gift },
-  { key: 'activity', label: 'Activity', icon: ScrollText },
+  { key: 'leaderboard', label: 'Board', icon: Medal },
   { key: 'settings', label: 'Settings', icon: Settings },
 ];
 

@@ -1,0 +1,20 @@
+{
+  "name": "Kidzy - Make Good Habits Fun!",
+  "short_name": "Kidzy",
+  "description": "Turn everyday behaviors into a rewarding game. Kids earn K$ for good habits and redeem real rewards.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8F7FF",
+  "theme_color": "#7C3AED",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%237C3AED'/><text y='.9em' x='50' text-anchor='middle' font-size='60'>⭐</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["kids", "education", "lifestyle"],
+  "lang": "en"
+}

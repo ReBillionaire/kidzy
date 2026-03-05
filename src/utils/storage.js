@@ -10,6 +10,8 @@ const defaultData = () => ({
   transactions: [],
   wishListItems: [],
   dreamGoals: [],
+  chores: [],
+  choreCompletions: [],
   weeklySummaries: [],
   currentParentId: null,
   settings: {

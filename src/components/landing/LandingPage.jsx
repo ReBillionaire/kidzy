@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Star, Trophy, Users, Flame, Gift, BarChart3, Sparkles, Shield, ArrowRight, ChevronDown } from 'lucide-react';
+import { Star, Trophy, Users, Flame, Gift, BarChart3, Sparkles, Shield, ArrowRight, ChevronDown, ClipboardList } from 'lucide-react';
 
 export default function LandingPage({ onGetStarted }) {
   const [scrolled, setScrolled] = useState(false);
@@ -146,6 +146,7 @@ export default function LandingPage({ onGetStarted }) {
               { icon: <Gift size={24} />, bg: 'bg-yellow-50', color: 'text-kidzy-yellow', title: 'Wish Lists & Dreams', desc: 'Kids save K$ for real rewards they choose. They learn patience and goal-setting naturally.' },
               { icon: <Flame size={24} />, bg: 'bg-red-50', color: 'text-red-500', title: 'Streaks & Multipliers', desc: 'Build daily streaks for consistency. Random 2x and 3x bonuses keep things exciting with confetti celebrations.' },
               { icon: <Trophy size={24} />, bg: 'bg-purple-50', color: 'text-kidzy-purple', title: 'Leaderboard & Badges', desc: 'Sibling-friendly competition with weekly rankings, improvement tracking, and 14 unlockable achievement badges.' },
+              { icon: <ClipboardList size={24} />, bg: 'bg-teal-50', color: 'text-teal-600', title: 'Chores & Tasks', desc: '12 preset chores with recurring schedules. Daily, weekday, or weekly — kids see exactly what\'s due today.' },
               { icon: <BarChart3 size={24} />, bg: 'bg-blue-50', color: 'text-kidzy-blue', title: 'Daily Challenges', desc: 'Three fresh challenges every day with bonus K$ rewards. Keeps kids engaged and motivated.' },
               { icon: <Users size={24} />, bg: 'bg-teal-50', color: 'text-kidzy-teal', title: 'Whole Family Support', desc: 'Multiple parents, multiple kids, separate wish lists. PIN-protected with security features built in.' },
             ].map((feature, i) => (
@@ -209,8 +210,8 @@ export default function LandingPage({ onGetStarted }) {
           <div className="flex justify-center flex-wrap gap-8 sm:gap-12">
             {[
               { num: '20+', label: 'Pre-built Behaviors' },
+              { num: '12', label: 'Preset Chores' },
               { num: '14', label: 'Achievement Badges' },
-              { num: '3', label: 'Daily Challenges' },
               { num: '0', label: 'Data Sent to Servers' },
             ].map((stat, i) => (
               <div
@@ -224,6 +225,75 @@ export default function LandingPage({ onGetStarted }) {
                 <div className="text-kidzy-gray text-sm mt-1">{stat.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section id="testimonials" data-animate className="py-16 bg-white px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className={`text-center mb-10 transition-all duration-700 ${isVisible('testimonials') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <h2 className="font-display font-bold text-3xl text-kidzy-dark mb-3">Families Love Kidzy</h2>
+            <p className="text-kidzy-gray text-lg">Hear from parents who've transformed daily routines into fun.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { name: 'Sarah M.', role: 'Mom of 2', text: 'My kids literally race to brush their teeth now. The streak system is genius — they don\'t want to break their record!', emoji: '\u{1F469}' },
+              { name: 'David L.', role: 'Dad of 3', text: 'We tried 4 other apps. They all wanted credit cards or subscriptions. Kidzy just works — free, private, and the kids love it.', emoji: '\u{1F468}' },
+              { name: 'Priya K.', role: 'Mom of 1', text: 'The preset chores feature saved me 30 minutes. Set up my daughter\'s whole routine in under a minute. She checks it every morning.', emoji: '\u{1F469}' },
+            ].map((t, i) => (
+              <div
+                key={i}
+                className={`bg-kidzy-bg rounded-2xl p-5 transition-all duration-700 ${isVisible('testimonials') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                style={{ transitionDelay: `${i * 150}ms` }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  {[1,2,3,4,5].map(s => <span key={s} className="text-yellow-400 text-sm">{'\u{2B50}'}</span>)}
+                </div>
+                <p className="text-kidzy-dark text-sm leading-relaxed mb-4">"{t.text}"</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-kidzy-purple/10 rounded-full flex items-center justify-center text-sm">{t.emoji}</div>
+                  <div>
+                    <p className="font-bold text-xs text-kidzy-dark">{t.name}</p>
+                    <p className="text-kidzy-gray text-[10px]">{t.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison Section */}
+      <section id="compare" data-animate className="py-16 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className={`text-center mb-10 transition-all duration-700 ${isVisible('compare') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <h2 className="font-display font-bold text-3xl text-kidzy-dark mb-3">Why Parents Choose Kidzy</h2>
+            <p className="text-kidzy-gray text-lg">No hidden costs, no data collection, no friction.</p>
+          </div>
+
+          <div className={`bg-white rounded-2xl overflow-hidden shadow-sm transition-all duration-700 ${isVisible('compare') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            {[
+              { feature: 'Price', kidzy: 'Free forever', others: '$5-12/month', good: true },
+              { feature: 'Setup time', kidzy: '30 seconds', others: '10-15 min + email', good: true },
+              { feature: 'Data privacy', kidzy: 'Stays on device', others: 'Cloud + accounts', good: true },
+              { feature: 'Virtual currency', kidzy: 'K$ system built in', others: 'Some have it', good: true },
+              { feature: 'Recurring chores', kidzy: '\u{2705} Daily/weekly', others: '\u{2705} Similar', good: false },
+              { feature: 'Achievement badges', kidzy: '14 badges', others: '5-10 badges', good: true },
+              { feature: 'Works offline', kidzy: '\u{2705} Fully offline', others: '\u{274C} Needs internet', good: true },
+            ].map((row, i) => (
+              <div key={i} className={`flex items-center p-3 text-sm ${i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}>
+                <span className="flex-1 font-medium text-kidzy-dark">{row.feature}</span>
+                <span className={`flex-1 text-center font-bold ${row.good ? 'text-green-600' : 'text-kidzy-dark'}`}>{row.kidzy}</span>
+                <span className="flex-1 text-center text-kidzy-gray">{row.others}</span>
+              </div>
+            ))}
+            <div className="flex items-center p-2 bg-gray-100 text-[10px] text-kidzy-gray">
+              <span className="flex-1"></span>
+              <span className="flex-1 text-center font-bold text-kidzy-purple">Kidzy</span>
+              <span className="flex-1 text-center">Other Apps</span>
+            </div>
           </div>
         </div>
       </section>

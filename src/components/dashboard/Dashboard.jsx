@@ -132,6 +132,7 @@ export default function Dashboard({ onNavigate }) {
                 todayEarnings={te}
                 weeklyEarnings={we}
                 streak={streak}
+                transactions={state.transactions}
                 onEarn={() => setShowQuickEarn(kid.id)}
                 onDeduct={() => setShowDeduct(kid.id)}
                 onViewRewards={() => onNavigate('rewards', kid.id)}

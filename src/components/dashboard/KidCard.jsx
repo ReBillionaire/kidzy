@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import Avatar from '../shared/Avatar';
 import DollarBadge from '../shared/DollarBadge';
-import { Plus, Minus, Gift, Flame } from 'lucide-react';
+import StreakCalendar from './StreakCalendar';
+import { Plus, Minus, Gift, Flame, ChevronDown, ChevronUp } from 'lucide-react';
 
-export default function KidCard({ kid, balance, todayEarnings, weeklyEarnings, streak, onEarn, onDeduct, onViewRewards }) {
+export default function KidCard({ kid, balance, todayEarnings, weeklyEarnings, streak, transactions, onEarn, onDeduct, onViewRewards }) {
   const [pressed, setPressed] = useState(null);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all overflow-hidden border border-gray-100">
@@ -71,6 +73,22 @@ export default function KidCard({ kid, balance, todayEarnings, weeklyEarnings, s
             Rewards
           </button>
         </div>
+
+        {/* Streak Calendar Toggle */}
+        <button
+          onClick={() => setShowCalendar(!showCalendar)}
+          className="w-full mt-3 flex items-center justify-center gap-1 text-xs text-kidzy-gray hover:text-kidzy-purple transition-colors py-1"
+        >
+          {showCalendar ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {showCalendar ? 'Hide' : 'Show'} Activity Calendar
+        </button>
+
+        {/* Streak Calendar */}
+        {showCalendar && transactions && (
+          <div className="mt-2">
+            <StreakCalendar kidId={kid.id} transactions={transactions} streak={streak} />
+          </div>
+        )}
       </div>
     </div>
   );

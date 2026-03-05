@@ -175,6 +175,30 @@ function kidzyReducer(state, action) {
       case 'REMOVE_DREAM': {
         return { ...state, dreamGoals: state.dreamGoals.filter(d => d.id !== action.payload) };
       }
+      // CHORES
+      case 'ADD_CHORE': {
+        if (!validateString(action.payload?.name) || !validateId(action.payload?.kidId)) return state;
+        return { ...state, chores: [...(state.chores || []), { id: generateId('chore'), ...action.payload, createdAt: new Date().toISOString() }] };
+      }
+      case 'REMOVE_CHORE': {
+        if (!validateId(action.payload)) return state;
+        return {
+          ...state,
+          chores: (state.chores || []).filter(c => c.id !== action.payload),
+          choreCompletions: (state.choreCompletions || []).filter(c => c.choreId !== action.payload),
+        };
+      }
+      case 'COMPLETE_CHORE': {
+        if (!validateId(action.payload?.choreId)) return state;
+        return {
+          ...state,
+          choreCompletions: [...(state.choreCompletions || []), {
+            id: generateId('cc'),
+            ...action.payload,
+            completedAt: new Date().toISOString(),
+          }],
+        };
+      }
       // CHALLENGES
       case 'COMPLETE_CHALLENGE': {
         const challenges = state.challenges || [];
