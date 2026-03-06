@@ -32,17 +32,15 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" aria-hidden="true" onClick={onClose} />
       <div
         ref={modalRef}
         tabIndex={-1}
         className={`relative bg-white w-full ${sizeClasses[size]} rounded-t-2xl sm:rounded-2xl shadow-2xl animate-slide-up max-h-[90dvh] overflow-y-auto`}
-        onClick={e => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white/95 backdrop-blur-sm flex items-center justify-between p-4 pb-2 border-b border-gray-100 z-10">
           <h3 id="modal-title" className="text-lg font-bold font-display text-kidzy-dark">{title}</h3>
