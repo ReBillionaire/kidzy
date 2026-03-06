@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import { getKidBalance, getKidEarningsToday, getStreak, getKidEarningsThisWeek } from '../../utils/helpers';
 import KidCard from './KidCard';
@@ -16,6 +16,15 @@ export default function Dashboard({ onNavigate }) {
   const [showQuickEarn, setShowQuickEarn] = useState(null);
   const [showDeduct, setShowDeduct] = useState(null);
   const currentParent = state.parents.find(p => p.id === state.currentParentId);
+
+  // DEBUG: detect mount/unmount
+  useEffect(() => {
+    console.log('[Dashboard] MOUNTED');
+    return () => console.log('[Dashboard] UNMOUNTED');
+  }, []);
+  useEffect(() => {
+    console.log('[Dashboard] showQuickEarn changed to:', showQuickEarn);
+  }, [showQuickEarn]);
 
   // Memoize expensive calculations
   const kidStats = useMemo(() => {
