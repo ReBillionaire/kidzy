@@ -1,9 +1,126 @@
 import { useState, useEffect } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import { verifyPin, hashPin, isLockedOut, recordFailedAttempt, resetLockout } from '../../utils/storage';
+import { getKidBalance, getStreak } from '../../utils/helpers';
+import { playClickSound, playCoinSound } from '../../utils/sounds';
 import Avatar from '../shared/Avatar';
-import { Lock, LogIn, ShieldAlert, ArrowLeft, KeyRound, AlertTriangle, Home } from 'lucide-react';
+import { Lock, LogIn, ShieldAlert, ArrowLeft, KeyRound, AlertTriangle, Home, Sparkles, Star, Flame } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+// Fun greetings that rotate for kids
+const KID_GREETINGS = [
+  "Who's ready to be awesome?",
+  "Choose your player!",
+  "Time to earn some K$!",
+  "Let's get started, superstar!",
+  "Ready to crush it today?",
+  "Your adventure awaits!",
+];
+
+// Background colors for kid cards — each kid gets a unique colorful gradient
+const KID_CARD_THEMES = [
+  { bg: 'from-violet-500 to-purple-600', glow: 'shadow-violet-300/50', accent: '#8B5CF6', ring: 'ring-violet-400' },
+  { bg: 'from-cyan-500 to-blue-600', glow: 'shadow-cyan-300/50', accent: '#06B6D4', ring: 'ring-cyan-400' },
+  { bg: 'from-emerald-500 to-green-600', glow: 'shadow-emerald-300/50', accent: '#10B981', ring: 'ring-emerald-400' },
+  { bg: 'from-orange-500 to-amber-600', glow: 'shadow-orange-300/50', accent: '#F97316', ring: 'ring-orange-400' },
+  { bg: 'from-pink-500 to-rose-600', glow: 'shadow-pink-300/50', accent: '#EC4899', ring: 'ring-pink-400' },
+  { bg: 'from-teal-500 to-cyan-600', glow: 'shadow-teal-300/50', accent: '#14B8A6', ring: 'ring-teal-400' },
+];
+
+function FloatingStars() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {Array.from({ length: 12 }, (_, i) => (
+        <div
+          key={i}
+          className="absolute text-white/20 animate-pulse"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            fontSize: `${Math.random() * 16 + 8}px`,
+            animationDelay: `${Math.random() * 3}s`,
+            animationDuration: `${2 + Math.random() * 3}s`,
+          }}
+        >
+          {['\u{2B50}', '\u{2728}', '\u{1F31F}', '\u{26A1}'][Math.floor(Math.random() * 4)]}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Animated kid character card — the hero of the redesign
+function KidCharacterCard({ kid, theme, index, balance, streak, onSelect, isSelected }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <button
+      onClick={() => {
+        playClickSound();
+        onSelect(kid.id);
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`
+        relative w-full rounded-3xl overflow-hidden transition-all duration-300 text-left
+        ${isSelected ? `scale-105 shadow-2xl ${theme.glow} ring-4 ${theme.ring}` : 'shadow-lg hover:shadow-xl hover:scale-[1.02]'}
+      `}
+      style={{ animationDelay: `${index * 0.1}s` }}
+    >
+      {/* Card background gradient */}
+      <div className={`bg-gradient-to-br ${theme.bg} p-5`}>
+        {/* Decorative sparkles */}
+        {(isHovered || isSelected) && (
+          <div className="absolute top-2 right-2 animate-bounce-in">
+            <Sparkles size={20} className="text-white/60" />
+          </div>
+        )}
+
+        <div className="flex items-center gap-4">
+          {/* Avatar with glow ring */}
+          <div className={`relative transition-transform duration-300 ${isHovered ? 'scale-110' : ''}`}>
+            <div className="absolute -inset-1.5 bg-white/20 rounded-full blur-sm" />
+            <Avatar src={kid.avatar} name={kid.name} size="lg" className="relative z-10" />
+            {/* Level badge */}
+            <div className="absolute -bottom-1 -right-1 z-20 bg-yellow-400 text-yellow-900 text-[10px] font-black rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-md">
+              {Math.min(Math.floor(balance / 10) + 1, 99)}
+            </div>
+          </div>
+
+          {/* Name and stats */}
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-display font-bold text-xl truncate">{kid.name}</p>
+            {kid.age && (
+              <p className="text-white/70 text-xs font-medium">Age {kid.age}</p>
+            )}
+            <div className="flex items-center gap-3 mt-2">
+              {/* K$ Balance */}
+              <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-2.5 py-1">
+                <span className="text-yellow-300 text-xs">{'\u{1F4B0}'}</span>
+                <span className="text-white font-bold text-xs">{balance} K$</span>
+              </div>
+              {/* Streak */}
+              {streak > 0 && (
+                <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-2.5 py-1">
+                  <Flame size={12} className="text-orange-300" />
+                  <span className="text-white font-bold text-xs">{streak}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Play arrow */}
+          <div className={`w-12 h-12 rounded-full bg-white/25 backdrop-blur-sm flex items-center justify-center transition-all duration-300 ${isHovered ? 'bg-white/40 scale-110' : ''}`}>
+            <span className="text-white text-2xl ml-0.5">{'\u{25B6}'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom shine effect */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+    </button>
+  );
+}
 
 export default function LoginScreen() {
   const state = useKidzy();
@@ -15,6 +132,8 @@ export default function LoginScreen() {
   const [selectedParent, setSelectedParent] = useState(state.parents[0]?.id || null);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [showForgotPin, setShowForgotPin] = useState(false);
+  const [greeting] = useState(() => KID_GREETINGS[Math.floor(Math.random() * KID_GREETINGS.length)]);
+  const [selectedKid, setSelectedKid] = useState(null);
 
   const hasPIN = state.family?.pin && state.family.pin.length > 0;
 
@@ -60,17 +179,20 @@ export default function LoginScreen() {
   };
 
   const handleKidSelect = (kidId) => {
-    dispatch({ type: 'SET_KID_MODE', payload: kidId });
+    setSelectedKid(kidId);
+    playCoinSound();
+    // Small delay for the selection animation to play before transitioning
+    setTimeout(() => {
+      dispatch({ type: 'SET_KID_MODE', payload: kidId });
+    }, 400);
   };
 
   const handleForgotPinReset = () => {
-    // Remove the PIN so parent can log in without it
     dispatch({ type: 'SET_FAMILY_PIN', payload: null });
     setShowForgotPin(false);
     setPin('');
     setError('');
     resetLockout();
-    // Auto-login to the first parent
     dispatch({ type: 'SET_CURRENT_PARENT', payload: state.parents[0]?.id });
   };
 
@@ -79,6 +201,7 @@ export default function LoginScreen() {
     setPin('');
     setError('');
     setShowForgotPin(false);
+    setSelectedKid(null);
   };
 
   // === PARENT LOGIN (with optional PIN) ===
@@ -189,42 +312,64 @@ export default function LoginScreen() {
     );
   }
 
-  // === KID MODE SELECTOR ===
+  // === KID MODE SELECTOR — THE GAME-LIKE CHARACTER SELECT ===
   if (mode === 'kid') {
     return (
-      <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md animate-slide-up">
-          <button onClick={goBack} className="flex items-center gap-1 text-kidzy-gray hover:text-kidzy-purple text-sm mb-4 transition-colors">
-            <ArrowLeft size={16} /> Back
+      <div className="min-h-dvh bg-gradient-to-br from-indigo-900 via-purple-900 to-violet-900 flex flex-col relative overflow-hidden">
+        <FloatingStars />
+
+        {/* Top bar */}
+        <div className="relative z-10 p-4 flex items-center">
+          <button onClick={goBack} className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm transition-colors bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5">
+            <ArrowLeft size={14} /> Back
           </button>
+        </div>
 
-          <div className="text-center mb-5">
-            <div className="text-5xl mb-2">{'\u{1F31F}'}</div>
-            <h1 className="text-2xl font-display font-bold text-kidzy-dark">Hey there!</h1>
-            <p className="text-kidzy-gray text-sm mt-1">Tap your name to see your K$ points</p>
+        {/* Hero section */}
+        <div className="relative z-10 text-center px-6 pt-2 pb-6">
+          <div className="inline-flex items-center gap-2 bg-yellow-400/20 backdrop-blur-sm text-yellow-300 text-xs font-bold px-4 py-1.5 rounded-full mb-3 animate-bounce-in">
+            <Star size={14} className="animate-pulse" />
+            <span>PLAYER SELECT</span>
+            <Star size={14} className="animate-pulse" />
           </div>
+          <h1 className="text-3xl font-display font-bold text-white mb-1 animate-slide-up">
+            {greeting}
+          </h1>
+          <p className="text-white/50 text-sm">Tap your character to start playing</p>
+        </div>
 
-          <div className="space-y-2">
-            {state.kids.map(kid => (
-              <button
-                key={kid.id}
-                onClick={() => handleKidSelect(kid.id)}
-                className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-gray-100 hover:border-kidzy-purple/30 hover:bg-purple-50/50 transition-all text-left"
-              >
-                <Avatar src={kid.avatar} name={kid.name} size="md" />
-                <span className="font-bold text-kidzy-dark text-lg">{kid.name}</span>
-                {kid.age && <span className="text-kidzy-gray text-sm ml-auto">Age {kid.age}</span>}
-              </button>
-            ))}
-          </div>
+        {/* Kid character cards */}
+        <div className="relative z-10 flex-1 px-4 pb-8 space-y-3 overflow-y-auto">
+          {state.kids.map((kid, index) => {
+            const theme = KID_CARD_THEMES[index % KID_CARD_THEMES.length];
+            const balance = getKidBalance(kid.id, state.transactions);
+            const streak = getStreak(kid.id, state.transactions);
+            return (
+              <div key={kid.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.2}s`, animationFillMode: 'both' }}>
+                <KidCharacterCard
+                  kid={kid}
+                  theme={theme}
+                  index={index}
+                  balance={balance}
+                  streak={streak}
+                  onSelect={handleKidSelect}
+                  isSelected={selectedKid === kid.id}
+                />
+              </div>
+            );
+          })}
 
           {state.kids.length === 0 && (
-            <div className="text-center py-6 bg-gray-50 rounded-xl">
-              <p className="text-4xl mb-2">{'\u{1F476}'}</p>
-              <p className="text-kidzy-gray text-sm">No kids added yet. Ask a parent to add you!</p>
+            <div className="text-center py-10 animate-slide-up">
+              <div className="text-6xl mb-3 animate-wiggle">{'\u{1F476}'}</div>
+              <p className="text-white/80 font-display font-bold text-lg">No players yet!</p>
+              <p className="text-white/50 text-sm mt-1">Ask a parent to add you to the team</p>
             </div>
           )}
         </div>
+
+        {/* Bottom glow decoration */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-purple-500/20 to-transparent pointer-events-none" />
       </div>
     );
   }
@@ -259,7 +404,7 @@ export default function LoginScreen() {
             </div>
           </button>
 
-          {/* Kid option */}
+          {/* Kid option — more playful */}
           <button
             onClick={() => setMode('kid')}
             className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-kidzy-green/40 hover:bg-green-50/30 transition-all text-left group"
