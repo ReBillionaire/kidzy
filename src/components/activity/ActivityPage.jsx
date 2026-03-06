@@ -49,7 +49,7 @@ export default function ActivityPage({ onBack }) {
   return (
     <div className="pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-r from-kidzy-blue to-indigo-500 text-white p-4 pb-6 rounded-b-3xl">
+      <div className="bg-gradient-to-r from-kidzy-blue to-indigo-500 text-white p-4 md:p-6 pb-6 rounded-b-3xl">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} className="p-2 bg-white/15 rounded-full"><ArrowLeft size={18} /></button>
           <h1 className="text-xl font-display font-bold">Activity Log</h1>
@@ -58,7 +58,7 @@ export default function ActivityPage({ onBack }) {
       </div>
 
       {/* Filters */}
-      <div className="px-4 mt-4 flex gap-2 overflow-x-auto pb-2">
+      <div className="px-4 md:px-6 mt-4 flex gap-2 overflow-x-auto pb-2">
         <select
           value={filterKid}
           onChange={e => setFilterKid(e.target.value)}
@@ -103,7 +103,7 @@ export default function ActivityPage({ onBack }) {
       )}
 
       {/* Transactions */}
-      <div className="px-4 mt-4">
+      <div className="px-4 md:px-6 mt-4">
         {Object.keys(grouped).length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl">
             <div className="text-5xl mb-3">📋</div>

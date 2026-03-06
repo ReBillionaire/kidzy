@@ -35,7 +35,7 @@ export default function Dashboard({ onNavigate }) {
   return (
     <div className="pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white p-4 pb-8 rounded-b-3xl shadow-lg">
+      <div className="bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white p-4 md:p-6 pb-8 rounded-b-3xl shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Avatar src={currentParent?.avatar} name={currentParent?.name || '?'} size="sm" />
@@ -72,7 +72,7 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       {/* Quick Nav */}
-      <div className="flex gap-2 overflow-x-auto px-4 -mt-4 pb-2 no-scrollbar">
+      <div className="flex gap-2 overflow-x-auto px-4 md:px-6 -mt-4 pb-2 no-scrollbar md:flex-wrap md:justify-center">
         {[
           { icon: <Medal size={16} />, label: 'Leaderboard', nav: 'leaderboard', color: 'from-amber-400 to-orange-500' },
           { icon: <Target size={16} />, label: 'Wish Lists', nav: 'rewards', color: 'from-pink-400 to-rose-500' },
@@ -91,7 +91,7 @@ export default function Dashboard({ onNavigate }) {
 
       {/* Daily Challenges - show for each kid */}
       {state.kids.length > 0 && (
-        <div className="px-4 mt-4 space-y-3">
+        <div className="px-4 md:px-6 mt-4 space-y-3">
           {state.kids.map(kid => (
             <DailyChallenges key={kid.id} kidId={kid.id} kidName={kid.name} showKidName={state.kids.length > 1} />
           ))}
@@ -99,7 +99,7 @@ export default function Dashboard({ onNavigate }) {
       )}
 
       {/* Kids */}
-      <div className="px-4 mt-4">
+      <div className="px-4 md:px-6 mt-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-display font-bold text-kidzy-dark">Your Kids</h2>
           <button

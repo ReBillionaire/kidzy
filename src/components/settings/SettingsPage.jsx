@@ -67,7 +67,7 @@ export default function SettingsPage({ onBack }) {
   return (
     <div className="pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-r from-kidzy-teal to-cyan-500 text-white p-4 pb-6 rounded-b-3xl">
+      <div className="bg-gradient-to-r from-kidzy-teal to-cyan-500 text-white p-4 md:p-6 pb-6 rounded-b-3xl">
         <div className="flex items-center gap-3 mb-2">
           <button onClick={onBack} className="p-2 bg-white/15 rounded-full"><ArrowLeft size={18} /></button>
           <h1 className="text-xl font-display font-bold">Family Settings</h1>
@@ -75,7 +75,7 @@ export default function SettingsPage({ onBack }) {
         <p className="text-teal-100 text-sm">{state.family?.name}</p>
       </div>
 
-      <div className="px-4 mt-4 space-y-6">
+      <div className="px-4 md:px-6 mt-4 space-y-6">
         {/* Parents Section */}
         <div>
           <div className="flex items-center justify-between mb-3">

@@ -20,13 +20,13 @@ export default function LeaderboardPage({ onBack }) {
   if (state.kids.length === 0) {
     return (
       <div className="pb-24">
-        <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 pb-8 rounded-b-3xl">
+        <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 md:p-6 pb-8 rounded-b-3xl">
           <div className="flex items-center gap-3">
             <button onClick={onBack} className="p-2 bg-white/15 rounded-full"><ArrowLeft size={18} /></button>
             <h1 className="text-xl font-display font-bold">Leaderboard</h1>
           </div>
         </div>
-        <div className="px-4 mt-8 text-center">
+        <div className="px-4 md:px-6 mt-8 text-center">
           <div className="text-5xl mb-3">🏆</div>
           <h3 className="font-display font-bold text-lg">No kids to compare yet!</h3>
           <p className="text-kidzy-gray text-sm">Add kids from the dashboard to see the leaderboard</p>
@@ -40,7 +40,7 @@ export default function LeaderboardPage({ onBack }) {
   return (
     <div className="pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 pb-10 rounded-b-3xl">
+      <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 md:p-6 pb-10 rounded-b-3xl">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} className="p-2 bg-white/15 rounded-full"><ArrowLeft size={18} /></button>
           <h1 className="text-xl font-display font-bold">Leaderboard</h1>
@@ -79,7 +79,7 @@ export default function LeaderboardPage({ onBack }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 px-4 -mt-4 mb-4">
+      <div className="flex gap-2 px-4 md:px-6 -mt-4 mb-4">
         {[
           { key: 'weekly', label: 'Weekly', icon: '🏆' },
           { key: 'improved', label: 'Improved', icon: '🚀' },
@@ -99,7 +99,7 @@ export default function LeaderboardPage({ onBack }) {
 
       {/* WEEKLY TAB */}
       {tab === 'weekly' && (
-        <div className="px-4 space-y-3">
+        <div className="px-4 md:px-6 space-y-3">
           {leaderboard.map((kid, index) => {
             const totalBalance = getKidBalance(kid.id, state.transactions);
             return (
@@ -156,7 +156,7 @@ export default function LeaderboardPage({ onBack }) {
 
       {/* MOST IMPROVED TAB */}
       {tab === 'improved' && (
-        <div className="px-4 space-y-3">
+        <div className="px-4 md:px-6 space-y-3">
           {improved.map((kid, index) => (
             <div
               key={kid.id}
@@ -200,7 +200,7 @@ export default function LeaderboardPage({ onBack }) {
 
       {/* BADGES TAB */}
       {tab === 'badges' && (
-        <div className="px-4 space-y-6">
+        <div className="px-4 md:px-6 space-y-6">
           {state.kids.map(kid => {
             const { all, unlocked, total } = getAchievements(kid.id, state.transactions);
             return (

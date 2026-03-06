@@ -204,11 +204,11 @@ export default function KidDashboard() {
   };
 
   return (
-    <div className="min-h-dvh bg-kidzy-bg pb-8">
+    <div className="min-h-dvh bg-kidzy-bg pb-8 max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto md:shadow-xl md:border-x md:border-gray-100">
       <ConfettiEffect active={showConfetti} />
 
       {/* ===== HERO HEADER — Gamified with Level System ===== */}
-      <div className="bg-gradient-to-br from-indigo-900 via-purple-800 to-violet-900 text-white px-4 pt-4 pb-6 rounded-b-[2rem] shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-indigo-900 via-purple-800 to-violet-900 text-white px-4 md:px-6 pt-4 pb-6 rounded-b-[2rem] shadow-xl relative overflow-hidden">
         {/* Decorative background elements */}
         <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl" />
@@ -309,7 +309,7 @@ export default function KidDashboard() {
 
       {/* ===== TODAY'S MISSIONS (not "tasks") ===== */}
       {todayChores.length > 0 && (
-        <div className="px-4 mt-5">
+        <div className="px-4 md:px-6 mt-5">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             {/* Mission header */}
             <div className="bg-gradient-to-r from-kidzy-purple/5 to-kidzy-blue/5 p-4 pb-3">
@@ -403,7 +403,7 @@ export default function KidDashboard() {
 
       {/* No missions message */}
       {todayChores.length === 0 && (
-        <div className="px-4 mt-5">
+        <div className="px-4 md:px-6 mt-5">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <span className="text-3xl">{'\u{1F3AE}'}</span>
@@ -416,7 +416,7 @@ export default function KidDashboard() {
 
       {/* ===== WISH LIST / GOALS ===== */}
       {wishes.length > 0 && (
-        <div className="px-4 mt-5">
+        <div className="px-4 md:px-6 mt-5">
           <h2 className="font-display font-bold text-kidzy-dark mb-3 flex items-center gap-2">
             <div className="w-7 h-7 bg-gradient-to-br from-kidzy-pink to-rose-500 rounded-lg flex items-center justify-center">
               <Gift size={14} className="text-white" />
@@ -476,7 +476,7 @@ export default function KidDashboard() {
       )}
 
       {/* ===== ACHIEVEMENTS / BADGES ===== */}
-      <div className="px-4 mt-5">
+      <div className="px-4 md:px-6 mt-5">
         <h2 className="font-display font-bold text-kidzy-dark mb-3 flex items-center gap-2">
           <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-lg flex items-center justify-center">
             <Trophy size={14} className="text-amber-900" />
@@ -527,7 +527,7 @@ export default function KidDashboard() {
       </div>
 
       {/* ===== MOTIVATIONAL FOOTER ===== */}
-      <div className="px-4 mt-6 mb-4">
+      <div className="px-4 md:px-6 mt-6 mb-4">
         <div className="bg-gradient-to-r from-kidzy-purple/5 to-kidzy-blue/5 rounded-2xl p-4 text-center border border-purple-100">
           <p className="text-kidzy-gray text-sm font-medium">
             {streak >= 7

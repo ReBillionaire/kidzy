@@ -31,7 +31,7 @@ export default function RewardsPage({ onBack, selectedKidId }) {
             <h1 className="text-xl font-display font-bold">Rewards & Dreams</h1>
           </div>
         </div>
-        <div className="px-4 mt-8 text-center">
+        <div className="px-4 md:px-6 mt-8 text-center">
           <div className="text-5xl mb-3">{'\u{1F381}'}</div>
           <h3 className="font-display font-bold text-lg">Add kids first!</h3>
           <p className="text-kidzy-gray text-sm">Go to the dashboard to add your first kid, then set up their wish list here.</p>
@@ -61,7 +61,7 @@ export default function RewardsPage({ onBack, selectedKidId }) {
       <ConfettiEffect active={showConfetti} />
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-kidzy-pink to-kidzy-orange text-white p-4 pb-6 rounded-b-3xl">
+      <div className="bg-gradient-to-r from-kidzy-pink to-kidzy-orange text-white p-4 md:p-6 pb-6 rounded-b-3xl">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} className="p-2 bg-white/15 rounded-full">
             <ArrowLeft size={18} />
@@ -96,7 +96,7 @@ export default function RewardsPage({ onBack, selectedKidId }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 px-4 mt-4 mb-4">
+      <div className="flex gap-2 px-4 md:px-6 mt-4 mb-4">
         {[
           { key: 'wishes', label: 'Wish List', icon: '🎁' },
           { key: 'dreams', label: 'Dream Goals', icon: '🌟' },
@@ -114,7 +114,7 @@ export default function RewardsPage({ onBack, selectedKidId }) {
         ))}
       </div>
 
-      <div className="px-4">
+      <div className="px-4 md:px-6">
         {tab === 'wishes' && (
           <>
             {wishes.length === 0 ? (

@@ -16,9 +16,10 @@ import BottomNav from './components/shared/BottomNav';
 
 // AuthLayout defined OUTSIDE AppContent so React sees a stable component reference.
 // This prevents unmount/remount of page content when global state changes.
+// Responsive: mobile-first (max-w-lg), tablet (md:max-w-2xl), desktop (lg:max-w-4xl)
 function AuthLayout({ children, activePage, onNavigate }) {
   return (
-    <div className="max-w-lg mx-auto min-h-dvh bg-kidzy-bg relative">
+    <div className="max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto min-h-dvh bg-kidzy-bg relative md:shadow-xl md:border-x md:border-gray-100">
       <ErrorBoundary showDetails>
         {children}
       </ErrorBoundary>

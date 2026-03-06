@@ -15,7 +15,7 @@ export default function BottomNav({ active, onNavigate }) {
       role="navigation"
       aria-label="Main navigation"
     >
-      <div className="flex items-center justify-around max-w-lg mx-auto">
+      <div className="flex items-center justify-around max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
         {NAV_ITEMS.map(item => {
           const isActive = active === item.key;
           const Icon = item.icon;
