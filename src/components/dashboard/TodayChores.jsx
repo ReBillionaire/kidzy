@@ -3,7 +3,9 @@ import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import DollarBadge from '../shared/DollarBadge';
 import ConfettiEffect from '../shared/ConfettiEffect';
 import { playCoinSound, vibrateEarn } from '../../utils/sounds';
-import { CheckCircle2, Circle, Sparkles, Plus, ClipboardList } from 'lucide-react';
+import { CheckCircle2, Circle, Sparkles, Plus, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react';
+
+const MAX_VISIBLE = 5;
 
 function isDueToday(chore) {
   if (!chore.repeat || chore.repeat === 'none') return true;
@@ -27,11 +29,13 @@ function isCompletedToday(choreId, completions) {
 /**
  * TodayChores — Inline chore checklist that lives inside KidCard.
  * Shows today's due chores as tappable checkboxes. Tap = complete + award K$.
+ * Collapses to MAX_VISIBLE items with a "Show all" toggle.
  */
 export default function TodayChores({ kidId, onManageChores }) {
   const state = useKidzy();
   const dispatch = useKidzyDispatch();
   const [showConfetti, setShowConfetti] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const soundEnabled = state.settings?.soundEnabled !== false;
   const hapticEnabled = state.settings?.hapticEnabled !== false;
@@ -89,6 +93,18 @@ export default function TodayChores({ kidId, onManageChores }) {
     );
   }
 
+  // Sort: incomplete first, then completed
+  const sortedChores = useMemo(() => {
+    return [...todayChores].sort((a, b) => {
+      const aDone = isCompletedToday(a.id, completions) ? 1 : 0;
+      const bDone = isCompletedToday(b.id, completions) ? 1 : 0;
+      return aDone - bDone;
+    });
+  }, [todayChores, completions]);
+
+  const visibleChores = expanded ? sortedChores : sortedChores.slice(0, MAX_VISIBLE);
+  const hiddenCount = sortedChores.length - MAX_VISIBLE;
+
   return (
     <div className="mt-3">
       <ConfettiEffect active={showConfetti} />
@@ -115,9 +131,9 @@ export default function TodayChores({ kidId, onManageChores }) {
         />
       </div>
 
-      {/* Chore list */}
+      {/* Chore list — collapsed to MAX_VISIBLE */}
       <div className="space-y-1">
-        {todayChores.map(chore => {
+        {visibleChores.map(chore => {
           const done = isCompletedToday(chore.id, completions);
           return (
             <button
@@ -151,13 +167,29 @@ export default function TodayChores({ kidId, onManageChores }) {
         })}
       </div>
 
-      {/* Manage link */}
-      <button
-        onClick={onManageChores}
-        className="mt-1 w-full text-center text-[10px] text-kidzy-gray hover:text-kidzy-purple transition-colors py-1"
-      >
-        Manage chores in Settings
-      </button>
+      {/* Show more/less toggle */}
+      {hiddenCount > 0 && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="mt-1 w-full flex items-center justify-center gap-1 text-xs text-kidzy-purple hover:text-kidzy-purple-dark transition-colors py-1.5 font-semibold"
+        >
+          {expanded ? (
+            <><ChevronUp size={14} /> Show less</>
+          ) : (
+            <><ChevronDown size={14} /> Show {hiddenCount} more task{hiddenCount !== 1 ? 's' : ''}</>
+          )}
+        </button>
+      )}
+
+      {/* Manage link — only show if list is short or expanded */}
+      {(todayChores.length <= MAX_VISIBLE || expanded) && (
+        <button
+          onClick={onManageChores}
+          className="mt-1 w-full text-center text-[10px] text-kidzy-gray hover:text-kidzy-purple transition-colors py-1"
+        >
+          Manage chores in Settings
+        </button>
+      )}
     </div>
   );
 }

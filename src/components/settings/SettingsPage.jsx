@@ -5,7 +5,7 @@ import Modal from '../shared/Modal';
 import Avatar from '../shared/Avatar';
 import DollarBadge from '../shared/DollarBadge';
 import AddKidModal from '../dashboard/AddKidModal';
-import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Plus, Edit3, X, ChevronDown, ChevronUp, ClipboardList, Sparkles, RotateCcw, Clock, CheckCircle2, Circle, LogOut, Home } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Plus, Edit3, X, ChevronDown, ChevronUp, ClipboardList, Sparkles, RotateCcw, Clock, CheckCircle2, Circle, LogOut, Home, Pencil } from 'lucide-react';
 
 const CHORE_ICONS = ['\u{1F9F9}', '\u{1F37D}\u{FE0F}', '\u{1F6CF}\u{FE0F}', '\u{1F4DA}', '\u{1F415}', '\u{1F5D1}\u{FE0F}', '\u{1F455}', '\u{1F331}', '\u{1F9FA}', '\u{1F6BF}', '\u{1F9B7}', '\u{1F392}', '\u{1F9F8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F58C}\u{FE0F}'];
 
@@ -43,6 +43,7 @@ export default function SettingsPage({ onBack }) {
   const [showAddChore, setShowAddChore] = useState(null); // kidId
   const [showPresets, setShowPresets] = useState(null); // kidId
   const [expandedChoreKid, setExpandedChoreKid] = useState(state.kids[0]?.id || null);
+  const [editKid, setEditKid] = useState(null); // kid object to edit
   const fileRef = useRef(null);
 
   const soundEnabled = state.settings?.soundEnabled !== false;
@@ -126,6 +127,9 @@ export default function SettingsPage({ onBack }) {
                   <p className="font-semibold">{kid.name}</p>
                   {kid.age && <p className="text-xs text-kidzy-gray">Age {kid.age}</p>}
                 </div>
+                <button onClick={() => setEditKid(kid)} className="p-2 text-gray-300 hover:text-kidzy-purple transition-colors" title="Edit">
+                  <Pencil size={16} />
+                </button>
                 <button onClick={() => {
                   if (confirm(`Remove ${kid.name}? This will delete all their data.`)) {
                     dispatch({ type: 'REMOVE_KID', payload: kid.id });
@@ -417,6 +421,7 @@ export default function SettingsPage({ onBack }) {
       {showAddItem && <AddBehaviorItemModal isOpen={true} onClose={() => setShowAddItem(null)} categoryId={showAddItem} />}
       {showAddChore && <AddChoreModal isOpen={true} onClose={() => setShowAddChore(null)} kidId={showAddChore} />}
       {showPresets && <PresetChoresModal isOpen={true} onClose={() => setShowPresets(null)} kidId={showPresets} existingChores={(state.chores || []).filter(c => c.kidId === showPresets)} />}
+      {editKid && <EditKidModal isOpen={true} onClose={() => setEditKid(null)} kid={editKid} />}
     </div>
   );
 }
@@ -613,6 +618,42 @@ function PresetChoresModal({ isOpen, onClose, kidId, existingChores }) {
       <button onClick={handleAddSelected} disabled={selected.size === 0}
         className="w-full mt-4 bg-gradient-to-r from-teal-400 to-cyan-500 text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
         <Plus size={18} className="inline mr-1" /> Add {selected.size} Chore{selected.size !== 1 ? 's' : ''}
+      </button>
+    </Modal>
+  );
+}
+
+function EditKidModal({ isOpen, onClose, kid }) {
+  const dispatch = useKidzyDispatch();
+  const [name, setName] = useState(kid.name || '');
+  const [age, setAge] = useState(kid.age ? String(kid.age) : '');
+
+  const handleSave = () => {
+    if (!name.trim()) return;
+    dispatch({
+      type: 'UPDATE_KID',
+      payload: { id: kid.id, name: name.trim(), age: age ? parseInt(age, 10) : null }
+    });
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Edit ${kid.name}`}>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Name</label>
+          <input type="text" placeholder="Kid's name" value={name} onChange={e => setName(e.target.value)} maxLength={50}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-pink focus:outline-none text-lg" autoFocus />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Age</label>
+          <input type="number" placeholder="e.g., 7" value={age} onChange={e => setAge(e.target.value)} min="1" max="18"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-pink focus:outline-none" />
+        </div>
+      </div>
+      <button onClick={handleSave} disabled={!name.trim()}
+        className="w-full mt-6 bg-gradient-to-r from-kidzy-pink to-kidzy-orange text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
+        <Pencil size={18} className="inline mr-1" /> Save Changes
       </button>
     </Modal>
   );

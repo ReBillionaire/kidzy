@@ -77,7 +77,7 @@ export default function Dashboard({ onNavigate }) {
           { icon: <Medal size={16} />, label: 'Leaderboard', nav: 'leaderboard', color: 'from-amber-400 to-orange-500' },
           { icon: <Target size={16} />, label: 'Wish Lists', nav: 'rewards', color: 'from-pink-400 to-rose-500' },
           { icon: <ScrollText size={16} />, label: 'Activity', nav: 'activity', color: 'from-blue-400 to-indigo-500' },
-          { icon: <Users size={16} />, label: 'Family', nav: 'settings', color: 'from-teal-400 to-cyan-500' },
+          { icon: <Users size={16} />, label: 'Settings', nav: 'settings', color: 'from-teal-400 to-cyan-500' },
         ].map((item, i) => (
           <button
             key={i}

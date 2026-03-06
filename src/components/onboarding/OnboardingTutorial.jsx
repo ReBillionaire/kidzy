@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useKidzyDispatch } from '../../context/KidzyContext';
-import { Plus, Minus, Gift, Trophy, ChevronRight, Sparkles } from 'lucide-react';
+import { Plus, Minus, Gift, Trophy, ChevronRight, Sparkles, ClipboardList } from 'lucide-react';
 
 const STEPS = [
   {
@@ -10,9 +10,16 @@ const STEPS = [
     color: 'from-kidzy-purple to-kidzy-blue',
   },
   {
+    emoji: '\u{1F4CB}',
+    title: 'Set Up Daily Chores',
+    body: 'Go to Settings to add daily tasks like "Make the bed" or "Brush teeth". Kids check them off right from the dashboard and earn K$ automatically!',
+    color: 'from-teal-400 to-cyan-500',
+    icon: ClipboardList,
+  },
+  {
     emoji: '\u{2795}',
     title: 'Award K$',
-    body: 'Tap the green Award K$ button on any kid\'s card to give K$ for completing behaviors like brushing teeth, doing homework, or being kind.',
+    body: 'Tap the green Award K$ button on any kid\'s card to give bonus K$ for great behavior beyond daily chores \u2014 being kind, helping out, and more.',
     color: 'from-green-400 to-emerald-500',
     icon: Plus,
   },
@@ -31,10 +38,10 @@ const STEPS = [
     icon: Gift,
   },
   {
-    emoji: '\u{1F3C6}',
-    title: 'Leaderboard & Badges',
-    body: 'The Leaderboard tracks weekly rankings and badges. Kids can earn 14 different achievement badges as they progress!',
-    color: 'from-amber-400 to-orange-500',
+    emoji: '\u{1F9D2}',
+    title: 'Kid Mode',
+    body: 'Kids can log in with their own profile to see their tasks, check off chores, track their K$ balance, and view their badges!',
+    color: 'from-kidzy-green to-teal-500',
     icon: Trophy,
   },
   {
