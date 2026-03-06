@@ -14,6 +14,19 @@ import ActivityPage from './components/activity/ActivityPage';
 import SettingsPage from './components/settings/SettingsPage';
 import BottomNav from './components/shared/BottomNav';
 
+// AuthLayout defined OUTSIDE AppContent so React sees a stable component reference.
+// This prevents unmount/remount of page content when global state changes.
+function AuthLayout({ children, activePage, onNavigate }) {
+  return (
+    <div className="max-w-lg mx-auto min-h-dvh bg-kidzy-bg relative">
+      <ErrorBoundary showDetails>
+        {children}
+      </ErrorBoundary>
+      <BottomNav active={activePage} onNavigate={onNavigate} />
+    </div>
+  );
+}
+
 function AppContent() {
   const state = useKidzy();
   const navigate = useNavigate();
@@ -60,7 +73,7 @@ function AppContent() {
     if (state.currentParentId && (path === '/' || path === '/login' || path === '/setup')) {
       navigate('/dashboard', { replace: true });
     }
-  }, [state?.family, state?.currentParentId, state?.kidMode, location.pathname, navigate, state]);
+  }, [state?.family, state?.currentParentId, state?.kidMode, location.pathname, navigate]);
 
   // When user logs out, redirect to landing page (only if on an app route)
   useEffect(() => {
@@ -93,15 +106,8 @@ function AppContent() {
 
   const goHome = () => navigate('/dashboard');
 
-  // Wrapper for authenticated pages with bottom nav
-  const AuthLayout = ({ children }) => (
-    <div className="max-w-lg mx-auto min-h-dvh bg-kidzy-bg relative">
-      <ErrorBoundary showDetails>
-        {children}
-      </ErrorBoundary>
-      <BottomNav active={location.pathname.replace('/', '') || 'dashboard'} onNavigate={handleNavigate} />
-    </div>
-  );
+  // NOTE: AuthLayout moved outside AppContent to prevent unmount/remount on state changes
+  const activePage = location.pathname.replace('/', '') || 'dashboard';
 
   return (
     <Routes>
@@ -143,7 +149,7 @@ function AppContent() {
       <Route path="/dashboard" element={
         state.currentParentId ? (
           <>
-            <AuthLayout>
+            <AuthLayout activePage={activePage} onNavigate={handleNavigate}>
               <Dashboard onNavigate={handleNavigate} />
             </AuthLayout>
             {!state.onboardingComplete && <OnboardingTutorial />}
@@ -155,7 +161,7 @@ function AppContent() {
 
       <Route path="/rewards" element={
         state.currentParentId ? (
-          <AuthLayout>
+          <AuthLayout activePage={activePage} onNavigate={handleNavigate}>
             <RewardsPage onBack={goHome} selectedKidId={new URLSearchParams(location.search).get('kid')} />
           </AuthLayout>
         ) : (
@@ -165,7 +171,7 @@ function AppContent() {
 
       <Route path="/leaderboard" element={
         state.currentParentId ? (
-          <AuthLayout><LeaderboardPage onBack={goHome} /></AuthLayout>
+          <AuthLayout activePage={activePage} onNavigate={handleNavigate}><LeaderboardPage onBack={goHome} /></AuthLayout>
         ) : (
           <Navigate to="/login" replace />
         )
@@ -173,7 +179,7 @@ function AppContent() {
 
       <Route path="/activity" element={
         state.currentParentId ? (
-          <AuthLayout><ActivityPage onBack={goHome} /></AuthLayout>
+          <AuthLayout activePage={activePage} onNavigate={handleNavigate}><ActivityPage onBack={goHome} /></AuthLayout>
         ) : (
           <Navigate to="/login" replace />
         )
@@ -181,7 +187,7 @@ function AppContent() {
 
       <Route path="/settings" element={
         state.currentParentId ? (
-          <AuthLayout><SettingsPage onBack={goHome} /></AuthLayout>
+          <AuthLayout activePage={activePage} onNavigate={handleNavigate}><SettingsPage onBack={goHome} /></AuthLayout>
         ) : (
           <Navigate to="/login" replace />
         )
