@@ -6,7 +6,7 @@ const KidzyDispatchContext = createContext(null);
 
 // Simple payload validation helpers
 function validateString(val, maxLen = 200) {
-  return typeof val === 'string' && val.length <= maxLen;
+  return typeof val === 'string' && val.length > 0 && val.length <= maxLen;
 }
 function validateNumber(val, min = 0, max = 100000) {
   return typeof val === 'number' && !isNaN(val) && val >= min && val <= max;
@@ -15,7 +15,7 @@ function validateId(val) {
   return typeof val === 'string' && val.length > 0 && val.length < 100;
 }
 
-function kidzyReducer(state, action) {
+export function kidzyReducer(state, action) {
   try {
     switch (action.type) {
       // AUTH
@@ -197,6 +197,40 @@ function kidzyReducer(state, action) {
             ...action.payload,
             completedAt: new Date().toISOString(),
           }],
+        };
+      }
+      case 'COMPLETE_CHORE_PENDING': {
+        if (!validateId(action.payload?.choreId)) return state;
+        return {
+          ...state,
+          pendingChoreCompletions: [...(state.pendingChoreCompletions || []), {
+            id: generateId('pcc'),
+            ...action.payload,
+            requestedAt: new Date().toISOString(),
+          }],
+        };
+      }
+      case 'APPROVE_CHORE_COMPLETION': {
+        if (!validateId(action.payload?.pendingId)) return state;
+        const pending = (state.pendingChoreCompletions || []).find(p => p.id === action.payload.pendingId);
+        if (!pending) return state;
+        return {
+          ...state,
+          pendingChoreCompletions: (state.pendingChoreCompletions || []).filter(p => p.id !== action.payload.pendingId),
+          choreCompletions: [...(state.choreCompletions || []), {
+            id: generateId('cc'),
+            choreId: pending.choreId,
+            kidId: pending.kidId,
+            date: pending.date,
+            completedAt: new Date().toISOString(),
+          }],
+        };
+      }
+      case 'REJECT_CHORE_COMPLETION': {
+        if (!validateId(action.payload)) return state;
+        return {
+          ...state,
+          pendingChoreCompletions: (state.pendingChoreCompletions || []).filter(p => p.id !== action.payload),
         };
       }
       // CHALLENGES

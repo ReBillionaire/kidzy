@@ -207,3 +207,22 @@ export function getRandomEncouragement() {
   ];
   return messages[Math.floor(Math.random() * messages.length)];
 }
+
+export function isDueToday(chore) {
+  if (!chore.repeat || chore.repeat === 'none') return true;
+  const day = new Date().getDay();
+  if (chore.repeat === 'daily') return true;
+  if (chore.repeat === 'weekdays') return day >= 1 && day <= 5;
+  if (chore.repeat === 'weekly') {
+    const created = new Date(chore.createdAt);
+    const today = new Date();
+    const diffDays = Math.floor((today - created) / 86400000);
+    return diffDays % 7 === 0 || diffDays === 0;
+  }
+  return true;
+}
+
+export function isCompletedToday(choreId, completions) {
+  const today = new Date().toISOString().split('T')[0];
+  return completions.some(c => c.choreId === choreId && c.date === today);
+}

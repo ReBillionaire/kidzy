@@ -1,30 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
+import { isDueToday, isCompletedToday } from '../../utils/helpers';
 import DollarBadge from '../shared/DollarBadge';
 import ConfettiEffect from '../shared/ConfettiEffect';
 import { playCoinSound, vibrateEarn } from '../../utils/sounds';
-import { CheckCircle2, Circle, Sparkles, Plus, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, Circle, Sparkles, Plus, ClipboardList, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 
 const MAX_VISIBLE = 5;
-
-function isDueToday(chore) {
-  if (!chore.repeat || chore.repeat === 'none') return true;
-  const day = new Date().getDay();
-  if (chore.repeat === 'daily') return true;
-  if (chore.repeat === 'weekdays') return day >= 1 && day <= 5;
-  if (chore.repeat === 'weekly') {
-    const created = new Date(chore.createdAt);
-    const today = new Date();
-    const diffDays = Math.floor((today - created) / 86400000);
-    return diffDays % 7 === 0 || diffDays === 0;
-  }
-  return true;
-}
-
-function isCompletedToday(choreId, completions) {
-  const today = new Date().toISOString().split('T')[0];
-  return completions.some(c => c.choreId === choreId && c.date === today);
-}
 
 /**
  * TodayChores — Inline chore checklist that lives inside KidCard.
@@ -36,11 +18,19 @@ export default function TodayChores({ kidId, onManageChores }) {
   const dispatch = useKidzyDispatch();
   const [showConfetti, setShowConfetti] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const lastActionRef = useRef(0);
 
   const soundEnabled = state.settings?.soundEnabled !== false;
   const hapticEnabled = state.settings?.hapticEnabled !== false;
   const completions = state.choreCompletions || [];
+  const pendingCompletions = state.pendingChoreCompletions || [];
   const chores = (state.chores || []).filter(c => c.kidId === kidId);
+  const today = new Date().toISOString().split('T')[0];
+
+  // Check if a chore is pending today
+  const isPendingToday = (choreId) => {
+    return pendingCompletions.some(p => p.choreId === choreId && p.date === today);
+  };
 
   const todayChores = useMemo(() => chores.filter(isDueToday), [chores]);
 
@@ -51,24 +41,18 @@ export default function TodayChores({ kidId, onManageChores }) {
   }, [todayChores, completions]);
 
   const handleComplete = (chore) => {
-    if (isCompletedToday(chore.id, completions)) return;
+    // Debounce check
+    const now = Date.now();
+    if (now - lastActionRef.current < 1000) return;
+    lastActionRef.current = now;
 
-    dispatch({
-      type: 'COMPLETE_CHORE',
-      payload: { choreId: chore.id, kidId, date: new Date().toISOString().split('T')[0] }
-    });
+    // Check if already completed or pending
+    if (isCompletedToday(chore.id, completions) || isPendingToday(chore.id)) return;
 
+    // Dispatch pending approval instead of immediate completion
     dispatch({
-      type: 'ADD_TRANSACTION',
-      payload: {
-        kidId,
-        parentId: state.currentParentId || 'system',
-        type: 'earn',
-        amount: chore.dollarValue,
-        reason: `Chore: ${chore.name}`,
-        category: 'Chore',
-        choreId: chore.id,
-      }
+      type: 'COMPLETE_CHORE_PENDING',
+      payload: { choreId: chore.id, kidId, date: today }
     });
 
     if (soundEnabled) playCoinSound();
@@ -93,14 +77,14 @@ export default function TodayChores({ kidId, onManageChores }) {
     );
   }
 
-  // Sort: incomplete first, then completed
+  // Sort: incomplete first, then pending, then completed
   const sortedChores = useMemo(() => {
     return [...todayChores].sort((a, b) => {
-      const aDone = isCompletedToday(a.id, completions) ? 1 : 0;
-      const bDone = isCompletedToday(b.id, completions) ? 1 : 0;
+      const aDone = isCompletedToday(a.id, completions) ? 2 : isPendingToday(a.id) ? 1 : 0;
+      const bDone = isCompletedToday(b.id, completions) ? 2 : isPendingToday(b.id) ? 1 : 0;
       return aDone - bDone;
     });
-  }, [todayChores, completions]);
+  }, [todayChores, completions, pendingCompletions]);
 
   const visibleChores = expanded ? sortedChores : sortedChores.slice(0, MAX_VISIBLE);
   const hiddenCount = sortedChores.length - MAX_VISIBLE;
@@ -135,32 +119,35 @@ export default function TodayChores({ kidId, onManageChores }) {
       <div className="space-y-1">
         {visibleChores.map(chore => {
           const done = isCompletedToday(chore.id, completions);
+          const pending = isPendingToday(chore.id);
           return (
             <button
               key={chore.id}
-              onClick={() => !done && handleComplete(chore)}
-              disabled={done}
+              onClick={() => !done && !pending && handleComplete(chore)}
+              disabled={done || pending}
               className={`w-full flex items-center gap-2 p-2 rounded-lg transition-all text-left ${
                 done
                   ? 'bg-green-50/50'
-                  : 'hover:bg-purple-50/50 active:scale-[0.98]'
+                  : pending
+                    ? 'bg-amber-50/50'
+                    : 'hover:bg-purple-50/50 active:scale-[0.98]'
               }`}
             >
               <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all ${
-                done ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-300'
+                done ? 'bg-green-100 text-green-600' : pending ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-300'
               }`}>
-                {done ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                {done ? <CheckCircle2 size={16} /> : pending ? <Clock size={16} /> : <Circle size={16} />}
               </div>
               <span className="text-sm flex-shrink-0">{chore.icon}</span>
               <span className={`text-xs font-medium flex-1 min-w-0 truncate ${
-                done ? 'text-green-700 line-through' : 'text-kidzy-dark'
+                done ? 'text-green-700 line-through' : pending ? 'text-amber-700' : 'text-kidzy-dark'
               }`}>
                 {chore.name}
               </span>
               <span className={`text-[10px] font-bold flex-shrink-0 ${
-                done ? 'text-green-500' : 'text-kidzy-purple'
+                done ? 'text-green-500' : pending ? 'text-amber-600' : 'text-kidzy-purple'
               }`}>
-                {done ? '\u{2713}' : `+${chore.dollarValue}`}
+                {done ? '\u{2713}' : pending ? '\u{231B}' : `+${chore.dollarValue}`}
               </span>
             </button>
           );

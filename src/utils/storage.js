@@ -12,6 +12,7 @@ const defaultData = () => ({
   dreamGoals: [],
   chores: [],
   choreCompletions: [],
+  pendingChoreCompletions: [],
   weeklySummaries: [],
   currentParentId: null,
   settings: {

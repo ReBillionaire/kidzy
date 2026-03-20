@@ -1,31 +1,12 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
-import { getKidBalance, getKidEarningsToday, getKidEarningsThisWeek, getStreak, getAchievements } from '../../utils/helpers';
+import { getKidBalance, getKidEarningsToday, getKidEarningsThisWeek, getStreak, getAchievements, isDueToday, isCompletedToday } from '../../utils/helpers';
 import { playCoinSound, playBonusSound, playAchievementSound, vibrateEarn } from '../../utils/sounds';
 import Avatar from '../shared/Avatar';
 import DollarBadge from '../shared/DollarBadge';
 import ProgressBar from '../shared/ProgressBar';
 import ConfettiEffect from '../shared/ConfettiEffect';
-import { LogOut, Flame, Trophy, Target, CheckCircle2, Circle, ClipboardList, Sparkles, Star, Zap, Gift, ChevronUp, Crown, TrendingUp } from 'lucide-react';
-
-function isDueToday(chore) {
-  if (!chore.repeat || chore.repeat === 'none') return true;
-  const day = new Date().getDay();
-  if (chore.repeat === 'daily') return true;
-  if (chore.repeat === 'weekdays') return day >= 1 && day <= 5;
-  if (chore.repeat === 'weekly') {
-    const created = new Date(chore.createdAt);
-    const today = new Date();
-    const diffDays = Math.floor((today - created) / 86400000);
-    return diffDays % 7 === 0 || diffDays === 0;
-  }
-  return true;
-}
-
-function isCompletedToday(choreId, completions) {
-  const today = new Date().toISOString().split('T')[0];
-  return completions.some(c => c.choreId === choreId && c.date === today);
-}
+import { LogOut, Flame, Trophy, Target, CheckCircle2, Circle, ClipboardList, Sparkles, Star, Zap, Gift, ChevronUp, Crown, TrendingUp, Clock } from 'lucide-react';
 
 // Calculate level and XP from balance
 function getLevelInfo(balance) {
@@ -119,10 +100,12 @@ export default function KidDashboard() {
   const [floatingRewards, setFloatingRewards] = useState([]);
   const [justCompleted, setJustCompleted] = useState(null);
   const [showBadgeDetail, setShowBadgeDetail] = useState(null);
+  const lastActionRef = useRef(0);
 
   const soundEnabled = state.settings?.soundEnabled !== false;
   const hapticEnabled = state.settings?.hapticEnabled !== false;
   const completions = state.choreCompletions || [];
+  const pendingCompletions = state.pendingChoreCompletions || [];
 
   if (!kid) {
     return (
@@ -153,47 +136,41 @@ export default function KidDashboard() {
   // Today's chores for this kid
   const chores = (state.chores || []).filter(c => c.kidId === kid.id);
   const todayChores = chores.filter(isDueToday);
+  const today = new Date().toISOString().split('T')[0];
+
+  // Check if a chore is pending today
+  const isPendingToday = (choreId) => {
+    return pendingCompletions.some(p => p.choreId === choreId && p.date === today);
+  };
+
   const choresDone = todayChores.filter(c => isCompletedToday(c.id, completions)).length;
   const choresTotal = todayChores.length;
   const choresPercent = choresTotal > 0 ? Math.round((choresDone / choresTotal) * 100) : 0;
 
   const handleCompleteChore = (chore) => {
-    if (isCompletedToday(chore.id, completions)) return;
+    // Debounce check
+    const now = Date.now();
+    if (now - lastActionRef.current < 1000) return;
+    lastActionRef.current = now;
 
-    dispatch({
-      type: 'COMPLETE_CHORE',
-      payload: { choreId: chore.id, kidId: kid.id, date: new Date().toISOString().split('T')[0] }
-    });
+    // Check if already completed or pending
+    if (isCompletedToday(chore.id, completions) || isPendingToday(chore.id)) return;
 
+    // Dispatch pending approval instead of immediate completion
     dispatch({
-      type: 'ADD_TRANSACTION',
-      payload: {
-        kidId: kid.id,
-        parentId: 'self',
-        type: 'earn',
-        amount: chore.dollarValue,
-        reason: `Chore: ${chore.name}`,
-        category: 'Chore',
-        choreId: chore.id,
-      }
+      type: 'COMPLETE_CHORE_PENDING',
+      payload: { choreId: chore.id, kidId: kid.id, date: today }
     });
 
     // Visual feedback
     setJustCompleted(chore.id);
     setTimeout(() => setJustCompleted(null), 1000);
 
-    // Floating reward
+    // Floating reward showing it's pending
     const id = Date.now();
     setFloatingRewards(prev => [...prev, { id, amount: chore.dollarValue }]);
 
-    if (soundEnabled) {
-      // Special sound if all chores done after this one
-      if (choresDone + 1 >= choresTotal) {
-        playBonusSound();
-      } else {
-        playCoinSound();
-      }
-    }
+    if (soundEnabled) playCoinSound();
     if (hapticEnabled) vibrateEarn();
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 2000);
@@ -355,6 +332,7 @@ export default function KidDashboard() {
             <div className="p-3 space-y-1.5">
               {todayChores.map(chore => {
                 const done = isCompletedToday(chore.id, completions);
+                const pending = isPendingToday(chore.id);
                 const isJustDone = justCompleted === chore.id;
                 return (
                   <div key={chore.id} className="relative">
@@ -362,35 +340,39 @@ export default function KidDashboard() {
                       <FloatingReward key={r.id} amount={r.amount} onDone={() => removeFloatingReward(r.id)} />
                     ))}
                     <button
-                      onClick={() => !done && handleCompleteChore(chore)}
-                      disabled={done}
+                      onClick={() => !done && !pending && handleCompleteChore(chore)}
+                      disabled={done || pending}
                       className={`w-full flex items-center gap-3 p-3.5 rounded-xl transition-all text-left ${
                         isJustDone
-                          ? 'bg-green-100 scale-[1.02] shadow-md'
+                          ? 'bg-amber-100 scale-[1.02] shadow-md'
                           : done
                             ? 'bg-green-50/80'
-                            : 'hover:bg-purple-50 active:scale-[0.98] bg-gray-50/50'
+                            : pending
+                              ? 'bg-amber-50/80'
+                              : 'hover:bg-purple-50 active:scale-[0.98] bg-gray-50/50'
                       }`}
                     >
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
-                        done ? 'bg-green-200 text-green-600' : 'bg-purple-100 text-purple-300'
+                        done ? 'bg-green-200 text-green-600' : pending ? 'bg-amber-200 text-amber-600' : 'bg-purple-100 text-purple-300'
                       } ${isJustDone ? 'animate-bounce-in' : ''}`}>
-                        {done ? <CheckCircle2 size={22} /> : <Circle size={22} />}
+                        {done ? <CheckCircle2 size={22} /> : pending ? <Clock size={22} /> : <Circle size={22} />}
                       </div>
                       <span className="text-xl flex-shrink-0">{chore.icon}</span>
                       <span className={`text-sm font-bold flex-1 min-w-0 truncate ${
-                        done ? 'text-green-700 line-through' : 'text-kidzy-dark'
+                        done ? 'text-green-700 line-through' : pending ? 'text-amber-700' : 'text-kidzy-dark'
                       }`}>
                         {chore.name}
                       </span>
                       <span className={`text-xs font-black flex-shrink-0 px-3 py-1.5 rounded-xl transition-all ${
                         isJustDone
-                          ? 'text-white bg-green-500 shadow-lg shadow-green-200 scale-110'
+                          ? 'text-white bg-amber-500 shadow-lg shadow-amber-200 scale-110'
                           : done
                             ? 'text-green-600 bg-green-100'
-                            : 'text-kidzy-purple bg-purple-100'
+                            : pending
+                              ? 'text-amber-600 bg-amber-100'
+                              : 'text-kidzy-purple bg-purple-100'
                       }`}>
-                        {done ? '\u{2713} Done' : `+${chore.dollarValue} K$`}
+                        {done ? '\u{2713} Done' : pending ? '\u{231B} Pending' : `+${chore.dollarValue} K$`}
                       </span>
                     </button>
                   </div>

@@ -1,30 +1,11 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
-import { getCompletedBehaviorsToday, getRandomEncouragement, rollMultiplier } from '../../utils/helpers';
+import { getCompletedBehaviorsToday, getRandomEncouragement, rollMultiplier, isDueToday, isCompletedToday } from '../../utils/helpers';
 import Modal from '../shared/Modal';
 import ConfettiEffect from '../shared/ConfettiEffect';
 import DollarBadge from '../shared/DollarBadge';
 import { Check, Plus, Sparkles, Zap, Undo2, Info, CheckCircle2, Circle, ClipboardList } from 'lucide-react';
 import { playCoinSound, playBonusSound, vibrateEarn, vibrateBonus } from '../../utils/sounds';
-
-function isDueToday(chore) {
-  if (!chore.repeat || chore.repeat === 'none') return true;
-  const day = new Date().getDay();
-  if (chore.repeat === 'daily') return true;
-  if (chore.repeat === 'weekdays') return day >= 1 && day <= 5;
-  if (chore.repeat === 'weekly') {
-    const created = new Date(chore.createdAt);
-    const today = new Date();
-    const diffDays = Math.floor((today - created) / 86400000);
-    return diffDays % 7 === 0 || diffDays === 0;
-  }
-  return true;
-}
-
-function isCompletedToday(choreId, completions) {
-  const today = new Date().toISOString().split('T')[0];
-  return completions.some(c => c.choreId === choreId && c.date === today);
-}
 
 export default function QuickEarnModal({ kidId, isOpen, onClose }) {
   const state = useKidzy();

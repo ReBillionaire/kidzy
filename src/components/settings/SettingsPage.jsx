@@ -4,6 +4,7 @@ import { exportData, importData } from '../../utils/storage';
 import Modal from '../shared/Modal';
 import Avatar from '../shared/Avatar';
 import DollarBadge from '../shared/DollarBadge';
+import ConfirmDialog from '../shared/ConfirmDialog';
 import AddKidModal from '../dashboard/AddKidModal';
 import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Plus, Edit3, X, ChevronDown, ChevronUp, ClipboardList, Sparkles, RotateCcw, Clock, CheckCircle2, Circle, LogOut, Home, Pencil } from 'lucide-react';
 
@@ -44,6 +45,7 @@ export default function SettingsPage({ onBack }) {
   const [showPresets, setShowPresets] = useState(null); // kidId
   const [expandedChoreKid, setExpandedChoreKid] = useState(state.kids[0]?.id || null);
   const [editKid, setEditKid] = useState(null); // kid object to edit
+  const [confirmAction, setConfirmAction] = useState(null);
   const fileRef = useRef(null);
 
   const soundEnabled = state.settings?.soundEnabled !== false;
@@ -131,9 +133,15 @@ export default function SettingsPage({ onBack }) {
                   <Pencil size={16} />
                 </button>
                 <button onClick={() => {
-                  if (confirm(`Remove ${kid.name}? This will delete all their data.`)) {
-                    dispatch({ type: 'REMOVE_KID', payload: kid.id });
-                  }
+                  setConfirmAction({
+                    title: 'Remove Kid?',
+                    message: `Remove ${kid.name}? This will delete all their data.`,
+                    confirmText: 'Remove',
+                    confirmColor: 'red',
+                    onConfirm: () => {
+                      dispatch({ type: 'REMOVE_KID', payload: kid.id });
+                    }
+                  });
                 }} className="p-2 text-gray-300 hover:text-red-400 transition-colors">
                   <Trash2 size={16} />
                 </button>
@@ -210,9 +218,15 @@ export default function SettingsPage({ onBack }) {
                           <span className="text-xs font-bold text-teal-600">{chore.dollarValue} K$</span>
                           <button
                             onClick={() => {
-                              if (confirm(`Remove "${chore.name}"?`)) {
-                                dispatch({ type: 'REMOVE_CHORE', payload: chore.id });
-                              }
+                              setConfirmAction({
+                                title: 'Remove Chore?',
+                                message: `Remove "${chore.name}"?`,
+                                confirmText: 'Remove',
+                                confirmColor: 'red',
+                                onConfirm: () => {
+                                  dispatch({ type: 'REMOVE_CHORE', payload: chore.id });
+                                }
+                              });
                             }}
                             className="p-1.5 text-gray-300 hover:text-red-400 transition-colors"
                           >
@@ -310,9 +324,15 @@ export default function SettingsPage({ onBack }) {
                         <span className="text-xs font-bold text-kidzy-purple">{item.dollarValue} K$</span>
                         <button
                           onClick={() => {
-                            if (confirm(`Remove "${item.name}"?`)) {
-                              dispatch({ type: 'REMOVE_BEHAVIOR_ITEM', payload: item.id });
-                            }
+                            setConfirmAction({
+                              title: 'Remove Behavior?',
+                              message: `Remove "${item.name}"?`,
+                              confirmText: 'Remove',
+                              confirmColor: 'red',
+                              onConfirm: () => {
+                                dispatch({ type: 'REMOVE_BEHAVIOR_ITEM', payload: item.id });
+                              }
+                            });
                           }}
                           className="p-1 text-gray-300 hover:text-red-400 transition-colors"
                         >
@@ -329,10 +349,16 @@ export default function SettingsPage({ onBack }) {
                     {!cat.id.startsWith('cat_') || cat.items.length === 0 ? (
                       <button
                         onClick={() => {
-                          if (confirm(`Delete the "${cat.name}" category?`)) {
-                            dispatch({ type: 'REMOVE_BEHAVIOR_CATEGORY', payload: cat.id });
-                            setExpandedCat(null);
-                          }
+                          setConfirmAction({
+                            title: 'Delete Category?',
+                            message: `Delete the "${cat.name}" category?`,
+                            confirmText: 'Delete',
+                            confirmColor: 'red',
+                            onConfirm: () => {
+                              dispatch({ type: 'REMOVE_BEHAVIOR_CATEGORY', payload: cat.id });
+                              setExpandedCat(null);
+                            }
+                          });
                         }}
                         className="w-full p-2 text-red-400 text-xs font-semibold hover:bg-red-50 rounded-lg transition-colors"
                       >
@@ -401,12 +427,25 @@ export default function SettingsPage({ onBack }) {
           <p className="text-red-600 text-sm mb-3">This will permanently delete all family data. Export a backup first!</p>
           <button
             onClick={() => {
-              if (confirm('Are you sure? This cannot be undone! Export a backup first.')) {
-                if (confirm('Last chance! All data will be permanently deleted.')) {
-                  localStorage.clear();
-                  window.location.reload();
+              setConfirmAction({
+                title: 'Reset Everything?',
+                message: 'This will permanently delete all family data. Export a backup first!',
+                confirmText: 'Continue',
+                confirmColor: 'red',
+                onConfirm: () => {
+                  // First confirmation passed, show second confirmation
+                  setConfirmAction({
+                    title: 'Last Chance!',
+                    message: 'All data will be permanently deleted. Are you absolutely sure?',
+                    confirmText: 'Delete All',
+                    confirmColor: 'red',
+                    onConfirm: () => {
+                      localStorage.clear();
+                      window.location.reload();
+                    }
+                  });
                 }
-              }
+              });
             }}
             className="bg-red-500 text-white font-bold py-2 px-4 rounded-xl text-sm"
           >
@@ -422,6 +461,15 @@ export default function SettingsPage({ onBack }) {
       {showAddChore && <AddChoreModal isOpen={true} onClose={() => setShowAddChore(null)} kidId={showAddChore} />}
       {showPresets && <PresetChoresModal isOpen={true} onClose={() => setShowPresets(null)} kidId={showPresets} existingChores={(state.chores || []).filter(c => c.kidId === showPresets)} />}
       {editKid && <EditKidModal isOpen={true} onClose={() => setEditKid(null)} kid={editKid} />}
+      <ConfirmDialog
+        isOpen={!!confirmAction}
+        onConfirm={() => {
+          confirmAction?.onConfirm();
+          setConfirmAction(null);
+        }}
+        onCancel={() => setConfirmAction(null)}
+        {...confirmAction}
+      />
     </div>
   );
 }

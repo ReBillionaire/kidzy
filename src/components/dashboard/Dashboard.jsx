@@ -6,8 +6,104 @@ import AddKidModal from './AddKidModal';
 import DailyChallenges from './DailyChallenges';
 import QuickEarnModal from '../behaviors/QuickEarnModal';
 import DeductModal from '../behaviors/DeductModal';
-import { Plus, LogOut, Settings, Users, Target, ScrollText, Medal } from 'lucide-react';
+import Modal from '../shared/Modal';
+import { Plus, LogOut, Settings, Users, Target, ScrollText, Medal, CheckCircle2, X, Bell } from 'lucide-react';
 import Avatar from '../shared/Avatar';
+
+// ApproveChoreModal - inline component
+function ApproveChoreModal({ isOpen, onClose, selectedKidId, state, dispatch }) {
+  if (!isOpen || !selectedKidId) return null;
+
+  const kid = state.kids.find(k => k.id === selectedKidId);
+  const pendingCompletions = (state.pendingChoreCompletions || []).filter(p => p.kidId === selectedKidId);
+  const choresMap = {};
+  (state.chores || []).forEach(c => { choresMap[c.id] = c; });
+
+  const handleApprove = (pendingId, choreId) => {
+    const chore = choresMap[choreId];
+    if (!chore) return;
+
+    dispatch({
+      type: 'APPROVE_CHORE_COMPLETION',
+      payload: { pendingId }
+    });
+
+    dispatch({
+      type: 'ADD_TRANSACTION',
+      payload: {
+        kidId: selectedKidId,
+        parentId: state.currentParentId,
+        type: 'earn',
+        amount: chore.dollarValue,
+        reason: `Chore: ${chore.name}`,
+        category: 'Chore',
+        choreId: choreId,
+      }
+    });
+  };
+
+  const handleReject = (pendingId) => {
+    dispatch({
+      type: 'REJECT_CHORE_COMPLETION',
+      payload: pendingId
+    });
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="bg-white rounded-3xl p-6 w-full max-w-sm mx-auto">
+        <h2 className="font-display font-bold text-xl mb-1 text-kidzy-dark">
+          Approve Chores
+        </h2>
+        <p className="text-kidzy-gray text-sm mb-4">
+          {kid?.name} completed {pendingCompletions.length} chore{pendingCompletions.length !== 1 ? 's' : ''}
+        </p>
+
+        <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
+          {pendingCompletions.map(pending => {
+            const chore = choresMap[pending.choreId];
+            if (!chore) return null;
+
+            return (
+              <div key={pending.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{chore.icon}</span>
+                    <p className="font-bold text-kidzy-dark truncate">{chore.name}</p>
+                  </div>
+                  <p className="text-xs text-kidzy-gray">+{chore.dollarValue} K$</p>
+                </div>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <button
+                    onClick={() => handleApprove(pending.id, pending.choreId)}
+                    className="w-8 h-8 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center"
+                    title="Approve"
+                  >
+                    <CheckCircle2 size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleReject(pending.id)}
+                    className="w-8 h-8 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors flex items-center justify-center"
+                    title="Reject"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full bg-gray-100 hover:bg-gray-200 text-kidzy-dark font-bold py-3 rounded-xl transition-colors"
+        >
+          Done
+        </button>
+      </div>
+    </Modal>
+  );
+}
 
 export default function Dashboard({ onNavigate }) {
   const state = useKidzy();
@@ -15,6 +111,7 @@ export default function Dashboard({ onNavigate }) {
   const [showAddKid, setShowAddKid] = useState(false);
   const [showQuickEarn, setShowQuickEarn] = useState(null);
   const [showDeduct, setShowDeduct] = useState(null);
+  const [approveKidId, setApproveKidId] = useState(null);
   const currentParent = state.parents.find(p => p.id === state.currentParentId);
 
   // Memoize expensive calculations
@@ -31,6 +128,16 @@ export default function Dashboard({ onNavigate }) {
   const todayEarnings = useMemo(() => kidStats.reduce((sum, s) => sum + s.todayEarnings, 0), [kidStats]);
   const totalKids = state.kids.length;
   const activeStreaks = useMemo(() => kidStats.filter(s => s.streak > 0).length, [kidStats]);
+
+  // Pending chore completions by kid
+  const pendingByKid = useMemo(() => {
+    const result = {};
+    (state.pendingChoreCompletions || []).forEach(p => {
+      if (!result[p.kidId]) result[p.kidId] = [];
+      result[p.kidId].push(p);
+    });
+    return result;
+  }, [state.pendingChoreCompletions]);
 
   return (
     <div className="pb-24">
@@ -98,6 +205,43 @@ export default function Dashboard({ onNavigate }) {
         </div>
       )}
 
+      {/* Pending Chore Approvals Notification */}
+      {Object.keys(pendingByKid).length > 0 && (
+        <div className="px-4 md:px-6 mt-4">
+          <div className="space-y-2">
+            {state.kids.map(kid => {
+              const pending = pendingByKid[kid.id] || [];
+              if (pending.length === 0) return null;
+
+              return (
+                <button
+                  key={kid.id}
+                  onClick={() => setApproveKidId(kid.id)}
+                  className="w-full bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4 text-left hover:shadow-md transition-all active:scale-[0.98]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                      <Bell size={20} className="text-amber-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-kidzy-dark">
+                        {kid.name} completed {pending.length} chore{pending.length !== 1 ? 's' : ''}
+                      </p>
+                      <p className="text-sm text-amber-700">Tap to review and approve</p>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <div className="bg-amber-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                        {pending.length}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Kids */}
       <div className="px-4 md:px-6 mt-4">
         <div className="flex items-center justify-between mb-3">
@@ -151,6 +295,13 @@ export default function Dashboard({ onNavigate }) {
       {showDeduct && (
         <DeductModal kidId={showDeduct} isOpen={!!showDeduct} onClose={() => setShowDeduct(null)} />
       )}
+      <ApproveChoreModal
+        isOpen={!!approveKidId}
+        onClose={() => setApproveKidId(null)}
+        selectedKidId={approveKidId}
+        state={state}
+        dispatch={dispatch}
+      />
     </div>
   );
 }

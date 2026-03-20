@@ -132,6 +132,9 @@ export default function LoginScreen() {
   const [selectedParent, setSelectedParent] = useState(state.parents[0]?.id || null);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [showForgotPin, setShowForgotPin] = useState(false);
+  const [resetFamilyName, setResetFamilyName] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
   const [greeting] = useState(() => KID_GREETINGS[Math.floor(Math.random() * KID_GREETINGS.length)]);
   const [selectedKid, setSelectedKid] = useState(null);
 
@@ -188,12 +191,28 @@ export default function LoginScreen() {
   };
 
   const handleForgotPinReset = () => {
+    const inputName = resetFamilyName.trim().toLowerCase();
+    const actualName = state.family?.name?.trim().toLowerCase() || '';
+
+    if (inputName !== actualName) {
+      setResetError('Incorrect family name. Please try again.');
+      return;
+    }
+
+    // Verified! Clear the PIN and show success message
     dispatch({ type: 'SET_FAMILY_PIN', payload: null });
-    setShowForgotPin(false);
+    setResetSuccess(true);
+    setResetFamilyName('');
+    setResetError('');
     setPin('');
     setError('');
     resetLockout();
-    dispatch({ type: 'SET_CURRENT_PARENT', payload: state.parents[0]?.id });
+
+    // Auto-dismiss success after 3 seconds and close the reset flow
+    setTimeout(() => {
+      setResetSuccess(false);
+      setShowForgotPin(false);
+    }, 3000);
   };
 
   const goBack = () => {
@@ -201,6 +220,9 @@ export default function LoginScreen() {
     setPin('');
     setError('');
     setShowForgotPin(false);
+    setResetFamilyName('');
+    setResetError('');
+    setResetSuccess(false);
     setSelectedKid(null);
   };
 
@@ -234,32 +256,75 @@ export default function LoginScreen() {
             ))}
           </div>
 
-          {/* Forgot PIN confirmation */}
+          {/* Forgot PIN — Multi-step verification */}
           {showForgotPin && (
-            <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-xl animate-slide-up">
-              <div className="flex items-start gap-3">
-                <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-bold text-amber-800 text-sm">Reset your PIN?</h3>
-                  <p className="text-amber-700 text-xs mt-1">
-                    This will remove PIN protection. You can set a new PIN in Settings after logging in.
-                  </p>
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={handleForgotPinReset}
-                      className="px-4 py-1.5 bg-amber-500 text-white font-bold rounded-lg text-xs"
-                    >
-                      Reset PIN
-                    </button>
-                    <button
-                      onClick={() => setShowForgotPin(false)}
-                      className="px-4 py-1.5 bg-gray-200 text-gray-600 font-medium rounded-lg text-xs"
-                    >
-                      Cancel
-                    </button>
+            <div className="mb-4 animate-slide-up">
+              {resetSuccess ? (
+                // Success message
+                <div className="p-4 bg-green-50 border-2 border-green-300 rounded-xl">
+                  <div className="text-center">
+                    <div className="text-3xl mb-2">{'\u{2713}'}</div>
+                    <h3 className="font-bold text-green-800 text-sm">PIN Removed Successfully</h3>
+                    <p className="text-green-700 text-xs mt-2">
+                      You can now log in without a PIN. You can set a new PIN in Settings anytime.
+                    </p>
                   </div>
                 </div>
-              </div>
+              ) : (
+                // Verification form
+                <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="font-bold text-amber-800 text-sm">Verify Your Identity</h3>
+                      <p className="text-amber-700 text-xs mt-1">
+                        Type your family name exactly to reset your PIN.
+                      </p>
+
+                      {/* Family name input */}
+                      <input
+                        type="text"
+                        placeholder="Your family name"
+                        value={resetFamilyName}
+                        onChange={e => {
+                          setResetFamilyName(e.target.value);
+                          setResetError('');
+                        }}
+                        onKeyDown={e => e.key === 'Enter' && handleForgotPinReset()}
+                        autoFocus
+                        className="w-full mt-2.5 px-3 py-2 border-2 border-amber-200 rounded-lg focus:border-amber-400 focus:outline-none text-sm"
+                      />
+
+                      {/* Error message */}
+                      {resetError && (
+                        <p className="text-red-600 text-xs mt-1.5 font-medium flex items-center gap-1">
+                          <span>{'\u{26A0}'}</span> {resetError}
+                        </p>
+                      )}
+
+                      {/* Buttons */}
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={handleForgotPinReset}
+                          className="flex-1 px-4 py-1.5 bg-amber-500 text-white font-bold rounded-lg text-xs hover:bg-amber-600 transition-colors"
+                        >
+                          Verify & Reset PIN
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowForgotPin(false);
+                            setResetFamilyName('');
+                            setResetError('');
+                          }}
+                          className="px-4 py-1.5 bg-gray-200 text-gray-600 font-medium rounded-lg text-xs hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
