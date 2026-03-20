@@ -1,11 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
-import { getKidBalance, getKidEarningsToday, getKidEarningsThisWeek, getStreak, getAchievements, isDueToday, isCompletedToday } from '../../utils/helpers';
+import { getKidBalance, getKidEarningsToday, getKidEarningsThisWeek, getStreak, getAchievements, isDueToday, isCompletedToday, isAllowanceDueToday } from '../../utils/helpers';
 import { playCoinSound, playBonusSound, playAchievementSound, vibrateEarn } from '../../utils/sounds';
 import Avatar from '../shared/Avatar';
 import DollarBadge from '../shared/DollarBadge';
 import ProgressBar from '../shared/ProgressBar';
 import ConfettiEffect from '../shared/ConfettiEffect';
+import PhotoProofCapture from '../shared/PhotoProofCapture';
+import SavingsCard from './SavingsCard';
 import { LogOut, Flame, Trophy, Target, CheckCircle2, Circle, ClipboardList, Sparkles, Star, Zap, Gift, ChevronUp, Crown, TrendingUp, Clock } from 'lucide-react';
 
 // Calculate level and XP from balance
@@ -100,6 +102,8 @@ export default function KidDashboard() {
   const [floatingRewards, setFloatingRewards] = useState([]);
   const [justCompleted, setJustCompleted] = useState(null);
   const [showBadgeDetail, setShowBadgeDetail] = useState(null);
+  const [photoChore, setPhotoChore] = useState(null); // chore being photo-proofed
+  const [chorePhoto, setChorePhoto] = useState(null); // captured photo base64
   const lastActionRef = useRef(0);
 
   const soundEnabled = state.settings?.soundEnabled !== false;
@@ -123,11 +127,19 @@ export default function KidDashboard() {
     );
   }
 
+  // Auto-distribute allowance if due
+  useEffect(() => {
+    if (isAllowanceDueToday(kid.id, state.allowanceSettings, state.lastAllowanceDistribution)) {
+      const settings = state.allowanceSettings[kid.id];
+      dispatch({ type: 'DISTRIBUTE_ALLOWANCE', payload: { kidId: kid.id, amount: settings.amount } });
+    }
+  }, [kid.id, state.allowanceSettings, state.lastAllowanceDistribution, dispatch]);
+
   const balance = getKidBalance(kid.id, state.transactions);
   const todayEarnings = getKidEarningsToday(kid.id, state.transactions);
   const weeklyEarnings = getKidEarningsThisWeek(kid.id, state.transactions);
   const streak = getStreak(kid.id, state.transactions);
-  const { all: achievements, unlocked, total } = getAchievements(kid.id, state.transactions);
+  const { all: achievements, unlocked, total } = getAchievements(kid.id, state.transactions, state.choreCompletions || [], state.chores || []);
   const levelInfo = getLevelInfo(balance);
 
   // Wishes for this kid
@@ -156,24 +168,37 @@ export default function KidDashboard() {
     // Check if already completed or pending
     if (isCompletedToday(chore.id, completions) || isPendingToday(chore.id)) return;
 
-    // Dispatch pending approval instead of immediate completion
+    // Show photo proof option
+    setPhotoChore(chore);
+    setChorePhoto(null);
+  };
+
+  const submitChoreCompletion = () => {
+    if (!photoChore) return;
+
     dispatch({
       type: 'COMPLETE_CHORE_PENDING',
-      payload: { choreId: chore.id, kidId: kid.id, date: today }
+      payload: {
+        choreId: photoChore.id,
+        kidId: kid.id,
+        date: today,
+        photoProof: chorePhoto || null,
+      }
     });
 
     // Visual feedback
-    setJustCompleted(chore.id);
+    setJustCompleted(photoChore.id);
     setTimeout(() => setJustCompleted(null), 1000);
-
-    // Floating reward showing it's pending
     const id = Date.now();
-    setFloatingRewards(prev => [...prev, { id, amount: chore.dollarValue }]);
-
+    setFloatingRewards(prev => [...prev, { id, amount: photoChore.dollarValue }]);
     if (soundEnabled) playCoinSound();
     if (hapticEnabled) vibrateEarn();
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 2000);
+
+    // Close modal
+    setPhotoChore(null);
+    setChorePhoto(null);
   };
 
   const removeFloatingReward = (id) => {
@@ -282,6 +307,14 @@ export default function KidDashboard() {
             <p className="text-white/40 text-[10px] font-medium">Streak</p>
           </div>
         </div>
+      </div>
+
+      {/* ===== SAVINGS POTS ===== */}
+      <div className="px-4 md:px-6 mt-5">
+        <SavingsCard
+          balance={balance}
+          allocation={(state.savingsAllocations || {})[kid.id] || { save: 40, spend: 40, give: 20 }}
+        />
       </div>
 
       {/* ===== TODAY'S MISSIONS (not "tasks") ===== */}
@@ -523,6 +556,47 @@ export default function KidDashboard() {
           </p>
         </div>
       </div>
+
+      {/* Photo Proof Modal */}
+      {photoChore && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setPhotoChore(null)}>
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-2">{photoChore.icon}</div>
+              <h3 className="font-display font-bold text-lg text-kidzy-dark">{photoChore.name}</h3>
+              <p className="text-kidzy-gray text-sm">Did you complete this mission?</p>
+            </div>
+
+            {/* Photo proof section */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-4 text-center">
+              <p className="text-xs font-bold text-kidzy-gray mb-2">Add photo proof (optional)</p>
+              <div className="flex justify-center">
+                <PhotoProofCapture
+                  onCapture={setChorePhoto}
+                  onClear={() => setChorePhoto(null)}
+                  currentPhoto={chorePhoto}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPhotoChore(null)}
+                className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl text-sm hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitChoreCompletion}
+                className="flex-1 py-3 bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white font-bold rounded-xl text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 size={16} />
+                {chorePhoto ? 'Submit with Photo' : 'Mark Done'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
 import { verifyPin, hashPin, isLockedOut, recordFailedAttempt, resetLockout } from '../../utils/storage';
 import { getKidBalance, getStreak } from '../../utils/helpers';
@@ -28,21 +28,32 @@ const KID_CARD_THEMES = [
 ];
 
 function FloatingStars() {
+  const stars = useMemo(() =>
+    Array.from({ length: 12 }, (_, i) => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      fontSize: `${Math.random() * 16 + 8}px`,
+      animationDelay: `${Math.random() * 3}s`,
+      animationDuration: `${2 + Math.random() * 3}s`,
+      emoji: ['\u{2B50}', '\u{2728}', '\u{1F31F}', '\u{26A1}'][Math.floor(Math.random() * 4)],
+    }))
+  , []);
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: 12 }, (_, i) => (
+      {stars.map((star, i) => (
         <div
           key={i}
           className="absolute text-white/20 animate-pulse"
           style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            fontSize: `${Math.random() * 16 + 8}px`,
-            animationDelay: `${Math.random() * 3}s`,
-            animationDuration: `${2 + Math.random() * 3}s`,
+            left: star.left,
+            top: star.top,
+            fontSize: star.fontSize,
+            animationDelay: star.animationDelay,
+            animationDuration: star.animationDuration,
           }}
         >
-          {['\u{2B50}', '\u{2728}', '\u{1F31F}', '\u{26A1}'][Math.floor(Math.random() * 4)]}
+          {star.emoji}
         </div>
       ))}
     </div>
@@ -137,6 +148,7 @@ export default function LoginScreen() {
   const [resetSuccess, setResetSuccess] = useState(false);
   const [greeting] = useState(() => KID_GREETINGS[Math.floor(Math.random() * KID_GREETINGS.length)]);
   const [selectedKid, setSelectedKid] = useState(null);
+  const selectTimerRef = useRef(null);
 
   const hasPIN = state.family?.pin && state.family.pin.length > 0;
 
@@ -185,7 +197,8 @@ export default function LoginScreen() {
     setSelectedKid(kidId);
     playCoinSound();
     // Small delay for the selection animation to play before transitioning
-    setTimeout(() => {
+    if (selectTimerRef.current) clearTimeout(selectTimerRef.current);
+    selectTimerRef.current = setTimeout(() => {
       dispatch({ type: 'SET_KID_MODE', payload: kidId });
     }, 400);
   };

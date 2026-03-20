@@ -24,6 +24,10 @@ const defaultData = () => ({
   },
   challenges: [],
   onboardingComplete: false,
+  savingsAllocations: {},
+  allowanceSettings: {},
+  lastAllowanceDistribution: {},
+  seenBadges: {},
 });
 
 export function getDefaultCategories() {

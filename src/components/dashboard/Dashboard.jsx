@@ -65,30 +65,42 @@ function ApproveChoreModal({ isOpen, onClose, selectedKidId, state, dispatch }) 
             if (!chore) return null;
 
             return (
-              <div key={pending.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{chore.icon}</span>
-                    <p className="font-bold text-kidzy-dark truncate">{chore.name}</p>
+              <div key={pending.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{chore.icon}</span>
+                      <p className="font-bold text-kidzy-dark truncate">{chore.name}</p>
+                    </div>
+                    <p className="text-xs text-kidzy-gray">+{chore.dollarValue} K$</p>
                   </div>
-                  <p className="text-xs text-kidzy-gray">+{chore.dollarValue} K$</p>
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => handleApprove(pending.id, pending.choreId)}
+                      className="w-8 h-8 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center"
+                      title="Approve"
+                    >
+                      <CheckCircle2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleReject(pending.id)}
+                      className="w-8 h-8 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors flex items-center justify-center"
+                      title="Reject"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() => handleApprove(pending.id, pending.choreId)}
-                    className="w-8 h-8 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center"
-                    title="Approve"
-                  >
-                    <CheckCircle2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleReject(pending.id)}
-                    className="w-8 h-8 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors flex items-center justify-center"
-                    title="Reject"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
+
+                {pending.photoProof && (
+                  <img
+                    src={pending.photoProof}
+                    alt="Proof"
+                    className="w-full h-32 object-cover rounded-lg border border-gray-200 mt-2 cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => window.open(pending.photoProof, '_blank')}
+                    title="Click to view full size"
+                  />
+                )}
               </div>
             );
           })}

@@ -6,6 +6,7 @@ import Avatar from '../shared/Avatar';
 import DollarBadge from '../shared/DollarBadge';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import AddKidModal from '../dashboard/AddKidModal';
+import AllowanceSettings from './AllowanceSettings';
 import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Plus, Edit3, X, ChevronDown, ChevronUp, ClipboardList, Sparkles, RotateCcw, Clock, CheckCircle2, Circle, LogOut, Home, Pencil } from 'lucide-react';
 
 const CHORE_ICONS = ['\u{1F9F9}', '\u{1F37D}\u{FE0F}', '\u{1F6CF}\u{FE0F}', '\u{1F4DA}', '\u{1F415}', '\u{1F5D1}\u{FE0F}', '\u{1F455}', '\u{1F331}', '\u{1F9FA}', '\u{1F6BF}', '\u{1F9B7}', '\u{1F392}', '\u{1F9F8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F58C}\u{FE0F}'];
@@ -254,6 +255,11 @@ export default function SettingsPage({ onBack }) {
               );
             })()}
           </div>
+        )}
+
+        {/* Weekly Allowance Settings */}
+        {state.kids.length > 0 && (
+          <AllowanceSettings />
         )}
 
         {/* Sound & Haptic Settings */}

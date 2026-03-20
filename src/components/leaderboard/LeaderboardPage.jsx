@@ -202,7 +202,7 @@ export default function LeaderboardPage({ onBack }) {
       {tab === 'badges' && (
         <div className="px-4 md:px-6 space-y-6">
           {state.kids.map(kid => {
-            const { all, unlocked, total } = getAchievements(kid.id, state.transactions);
+            const { all, unlocked, total } = getAchievements(kid.id, state.transactions, state.choreCompletions || [], state.chores || []);
             return (
               <div key={kid.id}>
                 <div className="flex items-center gap-2 mb-3">

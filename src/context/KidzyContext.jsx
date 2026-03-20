@@ -46,6 +46,16 @@ export function kidzyReducer(state, action) {
         // Kid mode: set kidMode and clear parent, mark as not logged out so we don't auto-login
         return { ...state, kidMode: action.payload || null, currentParentId: null, loggedOut: true };
       }
+      case 'MARK_BADGE_SEEN': {
+        if (!validateId(action.payload?.kidId) || !validateString(action.payload?.badgeId)) return state;
+        return {
+          ...state,
+          seenBadges: {
+            ...(state.seenBadges || {}),
+            [action.payload.kidId]: [...((state.seenBadges || {})[action.payload.kidId] || []), action.payload.badgeId],
+          }
+        };
+      }
       // PARENTS
       case 'ADD_PARENT': {
         if (!validateString(action.payload?.name)) return state;
@@ -237,6 +247,54 @@ export function kidzyReducer(state, action) {
       case 'COMPLETE_CHALLENGE': {
         const challenges = state.challenges || [];
         return { ...state, challenges: [...challenges, { ...action.payload, completedAt: new Date().toISOString() }] };
+      }
+      // SAVINGS & ALLOWANCE
+      case 'SET_SAVINGS_ALLOCATION': {
+        // payload: { kidId, save: 40, spend: 40, give: 20 } (percentages)
+        if (!validateId(action.payload?.kidId)) return state;
+        const { kidId, save = 40, spend = 40, give = 20 } = action.payload;
+        return {
+          ...state,
+          savingsAllocations: {
+            ...(state.savingsAllocations || {}),
+            [kidId]: { save, spend, give }
+          }
+        };
+      }
+      case 'SET_ALLOWANCE': {
+        // payload: { kidId, amount: 10, day: 'monday', enabled: true }
+        if (!validateId(action.payload?.kidId)) return state;
+        return {
+          ...state,
+          allowanceSettings: {
+            ...(state.allowanceSettings || {}),
+            [action.payload.kidId]: {
+              amount: action.payload.amount || 0,
+              day: action.payload.day || 'monday',
+              enabled: action.payload.enabled ?? true,
+            }
+          }
+        };
+      }
+      case 'DISTRIBUTE_ALLOWANCE': {
+        // payload: { kidId, amount }
+        if (!validateId(action.payload?.kidId) || !validateNumber(action.payload?.amount, 1)) return state;
+        return {
+          ...state,
+          transactions: [...state.transactions, {
+            id: generateId('tx'),
+            kidId: action.payload.kidId,
+            type: 'earn',
+            amount: action.payload.amount,
+            reason: 'Weekly Allowance',
+            category: 'allowance',
+            timestamp: new Date().toISOString(),
+          }],
+          lastAllowanceDistribution: {
+            ...(state.lastAllowanceDistribution || {}),
+            [action.payload.kidId]: new Date().toISOString(),
+          }
+        };
       }
       // SETTINGS
       case 'UPDATE_SETTINGS': {
