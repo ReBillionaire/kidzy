@@ -129,9 +129,10 @@ export function getDailyChallenges(date = getToday()) {
 }
 
 // Check challenge progress for a kid
-export function checkChallengeProgress(challenge, kidId, transactions) {
+export function checkChallengeProgress(challenge, kidId, transactions = []) {
   const template = CHALLENGE_TEMPLATES.find(t => t.id === challenge.id);
   if (!template) return { current: 0, target: 1, completed: false };
-  const progress = template.check(kidId, transactions);
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const progress = template.check(kidId, safeTransactions);
   return { ...progress, completed: progress.current >= progress.target };
 }

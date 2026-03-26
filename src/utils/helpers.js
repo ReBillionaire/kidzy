@@ -1,6 +1,7 @@
-// ── helpers.js ── Pure computation helpers (no side effects)
+// ââ helpers.js ââ Pure computation helpers (no side effects)
 
-export function getKidBalance(kidId, transactions) {
+export function getKidBalance(kidId, transactions = []) {
+  if (!Array.isArray(transactions)) return 0;
   return transactions
     .filter(t => t.kidId === kidId)
     .reduce((sum, t) => {
@@ -11,14 +12,16 @@ export function getKidBalance(kidId, transactions) {
     }, 0);
 }
 
-export function getKidEarningsToday(kidId, transactions) {
+export function getKidEarningsToday(kidId, transactions = []) {
+  if (!Array.isArray(transactions)) return 0;
   const today = new Date().toISOString().split('T')[0];
   return transactions
-    .filter(t => t.kidId === kidId && t.type === 'earn' && t.timestamp.startsWith(today))
+    .filter(t => t.kidId === kidId && t.type === 'earn' && t.timestamp?.startsWith(today))
     .reduce((sum, t) => sum + t.amount, 0);
 }
 
-export function getKidEarningsThisWeek(kidId, transactions) {
+export function getKidEarningsThisWeek(kidId, transactions = []) {
+  if (!Array.isArray(transactions)) return 0;
   const now = new Date();
   const day = now.getDay();
   const mondayOffset = day === 0 ? -6 : 1 - day;
@@ -30,7 +33,8 @@ export function getKidEarningsThisWeek(kidId, transactions) {
     .reduce((sum, t) => sum + t.amount, 0);
 }
 
-export function getKidDeductionsThisWeek(kidId, transactions) {
+export function getKidDeductionsThisWeek(kidId, transactions = []) {
+  if (!Array.isArray(transactions)) return 0;
   const now = new Date();
   const day = now.getDay();
   const mondayOffset = day === 0 ? -6 : 1 - day;
@@ -42,7 +46,8 @@ export function getKidDeductionsThisWeek(kidId, transactions) {
     .reduce((sum, t) => sum + t.amount, 0);
 }
 
-export function getKidEarningsLastWeek(kidId, transactions) {
+export function getKidEarningsLastWeek(kidId, transactions = []) {
+  if (!Array.isArray(transactions)) return 0;
   const now = new Date();
   const day = now.getDay();
   const mondayOffset = day === 0 ? -6 : 1 - day;
@@ -56,7 +61,8 @@ export function getKidEarningsLastWeek(kidId, transactions) {
     .reduce((sum, t) => sum + t.amount, 0);
 }
 
-export function getStreak(kidId, transactions) {
+export function getStreak(kidId, transactions = []) {
+  if (!Array.isArray(transactions)) return 0;
   const today = new Date();
   let streak = 0;
   for (let i = 0; i < 365; i++) {
@@ -99,15 +105,17 @@ export function getDailyHigh(kidId, transactions) {
   return values.length > 0 ? Math.max(...values) : 0;
 }
 
-export function getCompletedBehaviorsToday(kidId, transactions) {
+export function getCompletedBehaviorsToday(kidId, transactions = []) {
+  if (!Array.isArray(transactions)) return [];
   const today = new Date().toISOString().split('T')[0];
   return transactions
-    .filter(t => t.kidId === kidId && t.type === 'earn' && t.timestamp.startsWith(today))
+    .filter(t => t.kidId === kidId && t.type === 'earn' && t.timestamp?.startsWith(today))
     .map(t => t.behaviorId)
     .filter(Boolean);
 }
 
-export function getWeeklyLeaderboard(kids, transactions) {
+export function getWeeklyLeaderboard(kids = [], transactions = []) {
+  if (!Array.isArray(kids)) return [];
   return kids.map(kid => ({
     ...kid,
     weeklyEarnings: getKidEarningsThisWeek(kid.id, transactions),
@@ -117,7 +125,8 @@ export function getWeeklyLeaderboard(kids, transactions) {
   })).sort((a, b) => b.weeklyNet - a.weeklyNet);
 }
 
-export function getMostImprovedLeaderboard(kids, transactions) {
+export function getMostImprovedLeaderboard(kids = [], transactions = []) {
+  if (!Array.isArray(kids)) return [];
   return kids.map(kid => {
     const thisWeek = getKidEarningsThisWeek(kid.id, transactions);
     const lastWeek = getKidEarningsLastWeek(kid.id, transactions);

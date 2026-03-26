@@ -22,6 +22,7 @@ export default function Dashboard({ onNavigate }) {
   const currentKid = isKidMode ? state.kids.find(k => k.id === state.kidMode) : null;
 
   const kidStats = useMemo(() => {
+    if (!Array.isArray(state.kids)) return [];
     return state.kids.map(kid => ({
       kid,
       balance: getKidBalance(kid.id, state.transactions),
@@ -64,7 +65,7 @@ export default function Dashboard({ onNavigate }) {
     await signOut();
   };
 
-  // ── Kid Mode Dashboard ───────────────────
+  // ââ Kid Mode Dashboard âââââââââââââââââââ
   if (isKidMode && currentKid) {
     const unlockedBadges = myAchievements.filter(a => a.progress >= a.target);
     const nextBadge = myAchievements.find(a => a.progress < a.target);
@@ -233,7 +234,7 @@ export default function Dashboard({ onNavigate }) {
     );
   }
 
-  // ── Parent Mode Dashboard ───────────────────
+  // ââ Parent Mode Dashboard âââââââââââââââââââ
   return (
     <div className="pb-24">
       <div className="bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white p-4 pb-8 rounded-b-3xl shadow-lg">
