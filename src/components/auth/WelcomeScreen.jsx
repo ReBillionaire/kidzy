@@ -28,7 +28,7 @@ export default function WelcomeScreen() {
     setParentAvatar(user.avatar || null);
   }
 
-  // ── Handle Email Auth ─────────────────────────────────────────────
+  // ââ Handle Email Auth âââââââââââââââââââââââââââââââââââââââââââââ
   const handleEmailAuth = async () => {
     if (!email.trim() || !password.trim()) return;
     setLoading(true);
@@ -49,7 +49,7 @@ export default function WelcomeScreen() {
     setLoading(false);
   };
 
-  // ── Handle Google Auth ────────────────────────────────────────────
+  // ââ Handle Google Auth ââââââââââââââââââââââââââââââââââââââââââââ
   const handleGoogleAuth = async () => {
     setLoading(true);
     setError('');
@@ -65,7 +65,7 @@ export default function WelcomeScreen() {
     setLoading(false);
   };
 
-  // ── Create Family ─────────────────────────────────────────────────
+  // ââ Create Family âââââââââââââââââââââââââââââââââââââââââââââââââ
   const handleCreateFamily = async () => {
     if (!familyName.trim() || !parentName.trim()) return;
     setLoading(true);
@@ -79,7 +79,7 @@ export default function WelcomeScreen() {
     setLoading(false);
   };
 
-  // ── Join Family ───────────────────────────────────────────────────
+  // ââ Join Family âââââââââââââââââââââââââââââââââââââââââââââââââââ
   const handleJoinFamily = async () => {
     if (!inviteCode.trim() || !parentName.trim()) return;
     setLoading(true);
@@ -93,7 +93,7 @@ export default function WelcomeScreen() {
     setLoading(false);
   };
 
-  // ── Handle Password Reset ─────────────────────────────────────────
+  // ââ Handle Password Reset âââââââââââââââââââââââââââââââââââââââââ
   const handlePasswordReset = async () => {
     if (!email.trim()) { setError('Enter your email first.'); return; }
     try {
@@ -107,7 +107,7 @@ export default function WelcomeScreen() {
 
   const errorMsg = error || authError;
 
-  // ── Step 0: Splash ────────────────────────────────────────────────
+  // ââ Step 0: Splash ââââââââââââââââââââââââââââââââââââââââââââââââ
   if (step === 0) {
     return (
       <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6 text-white">
@@ -130,17 +130,23 @@ export default function WelcomeScreen() {
           </div>
 
           <button
-            onClick={() => setStep(1)}
+            onClick={() => { setAuthMode('signup'); setStep(1); }}
             className="w-full bg-white text-kidzy-purple font-bold py-4 px-8 rounded-2xl text-lg shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
           >
             Get Started <ArrowRight size={20} />
+          </button>
+          <button
+            onClick={() => { setAuthMode('signin'); setStep(1); }}
+            className="w-full mt-3 bg-white/15 backdrop-blur-sm text-white font-semibold py-3 px-8 rounded-2xl border-2 border-white/30 hover:bg-white/25 transition-all flex items-center justify-center gap-2"
+          >
+            <LogIn size={18} /> Already have an account? Sign In
           </button>
         </div>
       </div>
     );
   }
 
-  // ── Step 1: Sign Up / Sign In ─────────────────────────────────────
+  // ââ Step 1: Sign Up / Sign In âââââââââââââââââââââââââââââââââââââ
   if (step === 1) {
     return (
       <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
@@ -248,7 +254,7 @@ export default function WelcomeScreen() {
     );
   }
 
-  // ── Step 2: Create or Join Family ─────────────────────────────────
+  // ââ Step 2: Create or Join Family âââââââââââââââââââââââââââââââââ
   if (step === 2) {
     return (
       <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
@@ -291,7 +297,7 @@ export default function WelcomeScreen() {
     );
   }
 
-  // ── Step 3: Create Family ─────────────────────────────────────────
+  // ââ Step 3: Create Family âââââââââââââââââââââââââââââââââââââââââ
   if (step === 3) {
     return (
       <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
@@ -352,7 +358,7 @@ export default function WelcomeScreen() {
     );
   }
 
-  // ── Step 4: Join Family ───────────────────────────────────────────
+  // ââ Step 4: Join Family âââââââââââââââââââââââââââââââââââââââââââ
   return (
     <div className="min-h-dvh bg-gradient-to-br from-kidzy-purple via-purple-600 to-kidzy-blue flex flex-col items-center justify-center p-6">
       <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md animate-slide-up">
