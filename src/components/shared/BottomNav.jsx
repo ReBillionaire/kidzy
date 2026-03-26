@@ -1,6 +1,7 @@
 import { Home, Medal, Gift, ScrollText, Settings } from 'lucide-react';
+import { useKidzy } from '../../context/KidzyContext';
 
-const NAV_ITEMS = [
+const PARENT_NAV = [
   { key: 'dashboard', label: 'Home', icon: Home },
   { key: 'activity', label: 'Activity', icon: ScrollText },
   { key: 'rewards', label: 'Rewards', icon: Gift },
@@ -8,23 +9,28 @@ const NAV_ITEMS = [
   { key: 'settings', label: 'Settings', icon: Settings },
 ];
 
+const KID_NAV = [
+  { key: 'dashboard', label: 'Home', icon: Home },
+  { key: 'activity', label: 'Activity', icon: ScrollText },
+  { key: 'rewards', label: 'Rewards', icon: Gift },
+  { key: 'leaderboard', label: 'Board', icon: Medal },
+];
+
 export default function BottomNav({ active, onNavigate }) {
+  const state = useKidzy();
+  const isKidMode = !!state?.kidMode;
+  const items = isKidMode ? KID_NAV : PARENT_NAV;
+
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-2 pb-[env(safe-area-inset-bottom)] z-40"
-      role="navigation"
-      aria-label="Main navigation"
-    >
-      <div className="flex items-center justify-around max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
-        {NAV_ITEMS.map(item => {
+    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-2 pb-[env(safe-area-inset-bottom)] z-40">
+      <div className="flex items-center justify-around max-w-lg mx-auto">
+        {items.map(item => {
           const isActive = active === item.key;
           const Icon = item.icon;
           return (
             <button
               key={item.key}
               onClick={() => onNavigate(item.key)}
-              aria-label={item.label}
-              aria-current={isActive ? 'page' : undefined}
               className={`flex flex-col items-center gap-0.5 py-2 px-3 rounded-xl transition-all ${
                 isActive ? 'text-kidzy-purple' : 'text-gray-400 hover:text-gray-600'
               }`}
@@ -37,6 +43,6 @@ export default function BottomNav({ active, onNavigate }) {
           );
         })}
       </div>
-    </nav>
+    </div>
   );
 }
