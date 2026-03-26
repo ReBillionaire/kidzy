@@ -201,9 +201,18 @@ function kidzyReducer(state, action) {
       case 'LOAD_FAMILY_DATA': {
         // Load family data from Firestore, preserve transient state
         const { id, createdAt, inviteCode, ownerId, ...familyData } = action.payload;
+        const defaults = defaultState();
         return {
-          ...defaultState(),
+          ...defaults,
           ...familyData,
+          // Ensure all array fields are always arrays (Firestore may return null)
+          parents: Array.isArray(familyData.parents) ? familyData.parents : defaults.parents,
+          kids: Array.isArray(familyData.kids) ? familyData.kids : defaults.kids,
+          transactions: Array.isArray(familyData.transactions) ? familyData.transactions : defaults.transactions,
+          wishListItems: Array.isArray(familyData.wishListItems) ? familyData.wishListItems : defaults.wishListItems,
+          dreamGoals: Array.isArray(familyData.dreamGoals) ? familyData.dreamGoals : defaults.dreamGoals,
+          challenges: Array.isArray(familyData.challenges) ? familyData.challenges : defaults.challenges,
+          behaviorCategories: Array.isArray(familyData.behaviorCategories) ? familyData.behaviorCategories : defaults.behaviorCategories,
           family: { id, name: familyData.name, inviteCode, ownerId, createdAt },
           currentParentId: state?.currentParentId || null,
           kidMode: state?.kidMode || null,

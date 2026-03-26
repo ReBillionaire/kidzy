@@ -17,20 +17,23 @@ export default function Dashboard({ onNavigate }) {
   const [showAddKid, setShowAddKid] = useState(false);
   const [showQuickEarn, setShowQuickEarn] = useState(null);
   const [showDeduct, setShowDeduct] = useState(null);
-  const currentParent = state.parents.find(p => p.id === state.currentParentId);
+  const parents = Array.isArray(state.parents) ? state.parents : [];
+  const kids = Array.isArray(state.kids) ? state.kids : [];
+  const currentParent = parents.find(p => p.id === state.currentParentId);
   const isKidMode = !!state.kidMode;
-  const currentKid = isKidMode ? state.kids.find(k => k.id === state.kidMode) : null;
+  const currentKid = isKidMode ? kids.find(k => k.id === state.kidMode) : null;
+
+  const transactions = Array.isArray(state.transactions) ? state.transactions : [];
 
   const kidStats = useMemo(() => {
-    if (!Array.isArray(state.kids)) return [];
-    return state.kids.map(kid => ({
+    return kids.map(kid => ({
       kid,
-      balance: getKidBalance(kid.id, state.transactions),
-      todayEarnings: getKidEarningsToday(kid.id, state.transactions),
-      weeklyEarnings: getKidEarningsThisWeek(kid.id, state.transactions),
-      streak: getStreak(kid.id, state.transactions),
+      balance: getKidBalance(kid.id, transactions),
+      todayEarnings: getKidEarningsToday(kid.id, transactions),
+      weeklyEarnings: getKidEarningsThisWeek(kid.id, transactions),
+      streak: getStreak(kid.id, transactions),
     }));
-  }, [state.kids, state.transactions]);
+  }, [kids, transactions]);
 
   const totalFamilyDollars = useMemo(() => kidStats.reduce((sum, s) => sum + s.balance, 0), [kidStats]);
   const todayEarnings = useMemo(() => kidStats.reduce((sum, s) => sum + s.todayEarnings, 0), [kidStats]);
@@ -43,8 +46,8 @@ export default function Dashboard({ onNavigate }) {
 
   const myAchievements = useMemo(() => {
     if (!currentKid) return [];
-    return getAchievements(currentKid.id, state.transactions);
-  }, [currentKid, state.transactions]);
+    return getAchievements(currentKid.id, transactions);
+  }, [currentKid, transactions]);
 
   const myWishList = useMemo(() => {
     if (!currentKid) return [];
@@ -53,8 +56,8 @@ export default function Dashboard({ onNavigate }) {
 
   const myCompletedToday = useMemo(() => {
     if (!currentKid) return [];
-    return getCompletedBehaviorsToday(currentKid.id, state.transactions);
-  }, [currentKid, state.transactions]);
+    return getCompletedBehaviorsToday(currentKid.id, transactions);
+  }, [currentKid, transactions]);
 
   const handleSwitchProfile = () => {
     dispatch({ type: 'LOGOUT' });
@@ -285,9 +288,9 @@ export default function Dashboard({ onNavigate }) {
           >{item.icon} {item.label}</button>))}
       </div>
 
-      {state.kids.length > 0 && (
+      {kids.length > 0 && (
         <div className="px-4 mt-4">
-          <DailyChallenges kidId={state.kids[0].id} />
+          <DailyChallenges kidId={kids[0].id} />
         </div>
       )}
 
@@ -299,7 +302,7 @@ export default function Dashboard({ onNavigate }) {
           ><Plus size={16} /> Add Kid</button>
         </div>
 
-        {state.kids.length === 0 ? (
+        {kids.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
             <div className="text-5xl mb-3">&#128118;</div>
             <h3 className="text-lg font-display font-bold text-kidzy-dark mb-1">No kids yet!</h3>
