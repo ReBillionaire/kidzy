@@ -1,56 +1,71 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef } from 'react';
 import { useKidzy, useKidzyDispatch } from '../../context/KidzyContext';
+import { useAuth } from '../../context/AuthContext';
 import { exportData, importData } from '../../utils/storage';
+import { regenerateInviteCode, leaveFamily } from '../../utils/firestore';
 import Modal from '../shared/Modal';
 import Avatar from '../shared/Avatar';
-import DollarBadge from '../shared/DollarBadge';
-import ConfirmDialog from '../shared/ConfirmDialog';
-import AddKidModal from '../dashboard/AddKidModal';
-import AllowanceSettings from './AllowanceSettings';
-import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Plus, Edit3, X, ChevronDown, ChevronUp, ClipboardList, Sparkles, RotateCcw, Clock, CheckCircle2, Circle, LogOut, Home, Pencil } from 'lucide-react';
-
-const CHORE_ICONS = ['\u{1F9F9}', '\u{1F37D}\u{FE0F}', '\u{1F6CF}\u{FE0F}', '\u{1F4DA}', '\u{1F415}', '\u{1F5D1}\u{FE0F}', '\u{1F455}', '\u{1F331}', '\u{1F9FA}', '\u{1F6BF}', '\u{1F9B7}', '\u{1F392}', '\u{1F9F8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F58C}\u{FE0F}'];
-
-const REPEAT_OPTIONS = [
-  { value: 'none', label: 'One-time' },
-  { value: 'daily', label: 'Every day' },
-  { value: 'weekdays', label: 'Weekdays' },
-  { value: 'weekly', label: 'Weekly' },
-];
-
-const PRESET_CHORES = [
-  { name: 'Make the bed', icon: '\u{1F6CF}\u{FE0F}', dollarValue: 2, repeat: 'daily' },
-  { name: 'Brush teeth', icon: '\u{1F9B7}', dollarValue: 1, repeat: 'daily' },
-  { name: 'Clean room', icon: '\u{1F9F9}', dollarValue: 5, repeat: 'weekly' },
-  { name: 'Do homework', icon: '\u{1F4DA}', dollarValue: 3, repeat: 'weekdays' },
-  { name: 'Set the table', icon: '\u{1F37D}\u{FE0F}', dollarValue: 2, repeat: 'daily' },
-  { name: 'Take out trash', icon: '\u{1F5D1}\u{FE0F}', dollarValue: 3, repeat: 'daily' },
-  { name: 'Feed the pet', icon: '\u{1F415}', dollarValue: 2, repeat: 'daily' },
-  { name: 'Put away laundry', icon: '\u{1F455}', dollarValue: 3, repeat: 'weekly' },
-  { name: 'Water plants', icon: '\u{1F331}', dollarValue: 2, repeat: 'daily' },
-  { name: 'Pack school bag', icon: '\u{1F392}', dollarValue: 1, repeat: 'weekdays' },
-  { name: 'Practice instrument', icon: '\u{1F3B5}', dollarValue: 4, repeat: 'daily' },
-  { name: 'Read for 20 mins', icon: '\u{1F4DA}', dollarValue: 3, repeat: 'daily' },
-];
+import { ArrowLeft, UserPlus, Trash2, Users, Baby, Shield, Palette, Download, Upload, Volume2, VolumeX, Smartphone, Copy, RefreshCw, LogOut, Key } from 'lucide-react';
 
 export default function SettingsPage({ onBack }) {
   const state = useKidzy();
   const dispatch = useKidzyDispatch();
+  const { user, signOut, refreshFamilies, currentFamilyId } = useAuth();
   const [showAddParent, setShowAddParent] = useState(false);
-  const [showAddKid, setShowAddKid] = useState(false);
   const [importStatus, setImportStatus] = useState(null);
-  const [showAddCategory, setShowAddCategory] = useState(false);
-  const [showAddItem, setShowAddItem] = useState(null); // categoryId
-  const [expandedCat, setExpandedCat] = useState(null);
-  const [showAddChore, setShowAddChore] = useState(null); // kidId
-  const [showPresets, setShowPresets] = useState(null); // kidId
-  const [expandedChoreKid, setExpandedChoreKid] = useState(state.kids[0]?.id || null);
-  const [editKid, setEditKid] = useState(null); // kid object to edit
-  const [confirmAction, setConfirmAction] = useState(null);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const fileRef = useRef(null);
 
   const soundEnabled = state.settings?.soundEnabled !== false;
   const hapticEnabled = state.settings?.hapticEnabled !== false;
+  const inviteCode = state.family?.inviteCode || '------';
+  const isAdmin = state.parents.find(p => p.id === state.currentParentId)?.role === 'admin';
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = inviteCode;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    }
+  };
+
+  const handleRegenerateCode = async () => {
+    if (!currentFamilyId || !isAdmin) return;
+    setRegenerating(true);
+    try {
+      const newCode = await regenerateInviteCode(currentFamilyId);
+      dispatch({ type: 'UPDATE_FAMILY', payload: { inviteCode: newCode } });
+    } catch (e) {
+      console.error('Failed to regenerate code:', e);
+    }
+    setRegenerating(false);
+  };
+
+  const handleLeaveFamily = async () => {
+    if (!user || !currentFamilyId) return;
+    if (!confirm('Leave this family? You can rejoin later with the invite code.')) return;
+    setLeaving(true);
+    try {
+      await leaveFamily(currentFamilyId, user.uid);
+      await refreshFamilies(user.uid);
+    } catch (e) {
+      console.error('Failed to leave family:', e);
+      alert('Could not leave family. You may be the last admin.');
+    }
+    setLeaving(false);
+  };
 
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
@@ -70,7 +85,7 @@ export default function SettingsPage({ onBack }) {
   return (
     <div className="pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-r from-kidzy-teal to-cyan-500 text-white p-4 md:p-6 pb-6 rounded-b-3xl">
+      <div className="bg-gradient-to-r from-kidzy-teal to-cyan-500 text-white p-4 pb-6 rounded-b-3xl">
         <div className="flex items-center gap-3 mb-2">
           <button onClick={onBack} className="p-2 bg-white/15 rounded-full"><ArrowLeft size={18} /></button>
           <h1 className="text-xl font-display font-bold">Family Settings</h1>
@@ -78,7 +93,39 @@ export default function SettingsPage({ onBack }) {
         <p className="text-teal-100 text-sm">{state.family?.name}</p>
       </div>
 
-      <div className="px-4 md:px-6 mt-4 space-y-6">
+      <div className="px-4 mt-4 space-y-6">
+        {/* Invite Code Section */}
+        <div>
+          <h2 className="text-lg font-display font-bold flex items-center gap-2 mb-3">
+            <Key size={20} className="text-kidzy-purple" /> Invite Code
+          </h2>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p className="text-sm text-kidzy-gray mb-3">Share this code so other parents can join your family.</p>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-center">
+                <span className="text-2xl font-mono font-bold tracking-[0.3em] text-kidzy-dark">{inviteCode}</span>
+              </div>
+              <button
+                onClick={handleCopyCode}
+                className={`p-3 rounded-xl transition-all ${codeCopied ? 'bg-green-100 text-green-600' : 'bg-kidzy-purple/10 text-kidzy-purple hover:bg-kidzy-purple/20'}`}
+              >
+                <Copy size={20} />
+              </button>
+            </div>
+            {codeCopied && <p className="text-green-600 text-xs text-center mt-2 font-medium">Copied!</p>}
+            {isAdmin && (
+              <button
+                onClick={handleRegenerateCode}
+                disabled={regenerating}
+                className="mt-3 w-full flex items-center justify-center gap-2 text-xs font-semibold text-kidzy-gray hover:text-kidzy-purple bg-gray-50 hover:bg-purple-50 rounded-lg py-2 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={regenerating ? 'animate-spin' : ''} />
+                {regenerating ? 'Regenerating...' : 'Generate New Code'}
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Parents Section */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -89,15 +136,20 @@ export default function SettingsPage({ onBack }) {
           </div>
           <div className="space-y-2">
             {state.parents.map(parent => (
-              <div key={parent.id} className="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border border-gray-100">
-                <Avatar src={parent.avatar} name={parent.name} size="md" editable onImageChange={(img) => dispatch({ type: 'UPDATE_PARENT', payload: { id: parent.id, avatar: img } })} />
-                <div className="flex-1">
-                  <p className="font-semibold">{parent.name}</p>
-                  <p className="text-xs text-kidzy-gray">{parent.role === 'admin' ? 'Admin' : 'Parent'}</p>
+              <div key={parent.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <Avatar src={parent.avatar} name={parent.name} size="md" editable onImageChange={(img) => dispatch({ type: 'UPDATE_PARENT', payload: { id: parent.id, avatar: img } })} />
+                  <div className="flex-1">
+                    <p className="font-semibold">{parent.name}</p>
+                    <p className="text-xs text-kidzy-gray">{parent.role === 'admin' ? 'Admin' : 'Parent'}</p>
+                    {parent.email && (
+                      <p className="text-xs text-kidzy-gray mt-0.5">{parent.email}</p>
+                    )}
+                  </div>
+                  {parent.id === state.currentParentId && (
+                    <span className="text-xs bg-kidzy-teal/10 text-kidzy-teal px-2 py-1 rounded-full font-medium">You</span>
+                  )}
                 </div>
-                {parent.id === state.currentParentId && (
-                  <span className="text-xs bg-kidzy-teal/10 text-kidzy-teal px-2 py-1 rounded-full font-medium">You</span>
-                )}
               </div>
             ))}
           </div>
@@ -105,44 +157,19 @@ export default function SettingsPage({ onBack }) {
 
         {/* Kids Section */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-display font-bold flex items-center gap-2"><Baby size={20} className="text-kidzy-pink" /> Kids</h2>
-            <button onClick={() => setShowAddKid(true)} className="text-sm font-semibold text-kidzy-pink flex items-center gap-1">
-              <UserPlus size={16} /> Add Kid
-            </button>
-          </div>
+          <h2 className="text-lg font-display font-bold flex items-center gap-2 mb-3"><Baby size={20} className="text-kidzy-pink" /> Kids</h2>
           <div className="space-y-2">
-            {state.kids.length === 0 ? (
-              <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
-                <div className="text-3xl mb-2">{'\u{1F476}'}</div>
-                <p className="text-kidzy-gray text-sm mb-3">No kids added yet</p>
-                <button
-                  onClick={() => setShowAddKid(true)}
-                  className="bg-gradient-to-r from-kidzy-pink to-kidzy-orange text-white font-bold py-2 px-4 rounded-xl text-sm"
-                >
-                  <Plus size={14} className="inline mr-1" /> Add Your First Kid
-                </button>
-              </div>
-            ) : state.kids.map(kid => (
+            {state.kids.map(kid => (
               <div key={kid.id} className="bg-white rounded-xl p-3 flex items-center gap-3 shadow-sm border border-gray-100">
                 <Avatar src={kid.avatar} name={kid.name} size="md" editable onImageChange={(img) => dispatch({ type: 'UPDATE_KID', payload: { id: kid.id, avatar: img } })} />
                 <div className="flex-1">
                   <p className="font-semibold">{kid.name}</p>
                   {kid.age && <p className="text-xs text-kidzy-gray">Age {kid.age}</p>}
                 </div>
-                <button onClick={() => setEditKid(kid)} className="p-2 text-gray-300 hover:text-kidzy-purple transition-colors" title="Edit">
-                  <Pencil size={16} />
-                </button>
                 <button onClick={() => {
-                  setConfirmAction({
-                    title: 'Remove Kid?',
-                    message: `Remove ${kid.name}? This will delete all their data.`,
-                    confirmText: 'Remove',
-                    confirmColor: 'red',
-                    onConfirm: () => {
-                      dispatch({ type: 'REMOVE_KID', payload: kid.id });
-                    }
-                  });
+                  if (confirm(`Remove ${kid.name}? This will delete all their data.`)) {
+                    dispatch({ type: 'REMOVE_KID', payload: kid.id });
+                  }
                 }} className="p-2 text-gray-300 hover:text-red-400 transition-colors">
                   <Trash2 size={16} />
                 </button>
@@ -150,117 +177,6 @@ export default function SettingsPage({ onBack }) {
             ))}
           </div>
         </div>
-
-        {/* Chores Management */}
-        {state.kids.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-display font-bold flex items-center gap-2"><ClipboardList size={20} className="text-teal-500" /> Chores</h2>
-            </div>
-            <p className="text-xs text-kidzy-gray mb-3">Assign daily chores that appear on the dashboard. Kids earn K$ by checking them off.</p>
-
-            {/* Kid tabs for chores */}
-            {state.kids.length > 1 && (
-              <div className="flex gap-2 mb-3 overflow-x-auto">
-                {state.kids.map(k => (
-                  <button
-                    key={k.id}
-                    onClick={() => setExpandedChoreKid(k.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                      expandedChoreKid === k.id ? 'bg-teal-500 text-white shadow-sm' : 'bg-white text-kidzy-gray border border-gray-200'
-                    }`}
-                  >
-                    <Avatar src={k.avatar} name={k.name} size="xs" />
-                    {k.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Chore list for selected kid */}
-            {(() => {
-              const kidId = expandedChoreKid || state.kids[0]?.id;
-              const kidChores = (state.chores || []).filter(c => c.kidId === kidId);
-              const kidName = state.kids.find(k => k.id === kidId)?.name || 'Kid';
-              return (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                  {kidChores.length === 0 ? (
-                    <div className="p-4 text-center">
-                      <p className="text-kidzy-gray text-sm mb-3">No chores for {kidName} yet</p>
-                      <div className="flex gap-2 justify-center">
-                        <button
-                          onClick={() => setShowPresets(kidId)}
-                          className="bg-gradient-to-r from-teal-400 to-cyan-500 text-white font-bold py-2 px-4 rounded-xl text-xs"
-                        >
-                          <Sparkles size={12} className="inline mr-1" /> Quick Add Presets
-                        </button>
-                        <button
-                          onClick={() => setShowAddChore(kidId)}
-                          className="text-teal-600 font-semibold text-xs border border-teal-200 py-2 px-4 rounded-xl hover:bg-teal-50"
-                        >
-                          <Plus size={12} className="inline mr-0.5" /> Custom
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-gray-50">
-                      {kidChores.map(chore => (
-                        <div key={chore.id} className="p-3 flex items-center gap-2">
-                          <span className="text-lg">{chore.icon}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-kidzy-dark truncate">{chore.name}</p>
-                            <p className="text-[10px] text-kidzy-gray flex items-center gap-1">
-                              {chore.repeat === 'daily' && <><RotateCcw size={8} /> Daily</>}
-                              {chore.repeat === 'weekdays' && <><RotateCcw size={8} /> Weekdays</>}
-                              {chore.repeat === 'weekly' && <><RotateCcw size={8} /> Weekly</>}
-                              {(!chore.repeat || chore.repeat === 'none') && <><Clock size={8} /> One-time</>}
-                            </p>
-                          </div>
-                          <span className="text-xs font-bold text-teal-600">{chore.dollarValue} K$</span>
-                          <button
-                            onClick={() => {
-                              setConfirmAction({
-                                title: 'Remove Chore?',
-                                message: `Remove "${chore.name}"?`,
-                                confirmText: 'Remove',
-                                confirmColor: 'red',
-                                onConfirm: () => {
-                                  dispatch({ type: 'REMOVE_CHORE', payload: chore.id });
-                                }
-                              });
-                            }}
-                            className="p-1.5 text-gray-300 hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
-                      <div className="p-3 flex gap-2">
-                        <button
-                          onClick={() => setShowPresets(kidId)}
-                          className="flex-1 p-2 border-2 border-dashed border-teal-200 rounded-lg text-teal-600 text-xs font-semibold hover:bg-teal-50 transition-colors flex items-center justify-center gap-1"
-                        >
-                          <Sparkles size={12} /> Presets
-                        </button>
-                        <button
-                          onClick={() => setShowAddChore(kidId)}
-                          className="flex-1 p-2 border-2 border-dashed border-teal-200 rounded-lg text-teal-600 text-xs font-semibold hover:bg-teal-50 transition-colors flex items-center justify-center gap-1"
-                        >
-                          <Plus size={12} /> Custom
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* Weekly Allowance Settings */}
-        {state.kids.length > 0 && (
-          <AllowanceSettings />
-        )}
 
         {/* Sound & Haptic Settings */}
         <div>
@@ -301,78 +217,17 @@ export default function SettingsPage({ onBack }) {
           </div>
         </div>
 
-        {/* Behavior Categories - Now Editable */}
+        {/* Behavior Settings */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-display font-bold flex items-center gap-2"><Palette size={20} className="text-kidzy-purple" /> Behavior Categories</h2>
-            <button onClick={() => setShowAddCategory(true)} className="text-sm font-semibold text-kidzy-purple flex items-center gap-1">
-              <Plus size={16} /> Add
-            </button>
-          </div>
+          <h2 className="text-lg font-display font-bold flex items-center gap-2 mb-3"><Palette size={20} className="text-kidzy-purple" /> Behavior Categories</h2>
           <div className="space-y-2">
             {state.behaviorCategories.map(cat => (
-              <div key={cat.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <button
-                  onClick={() => setExpandedCat(expandedCat === cat.id ? null : cat.id)}
-                  className="w-full p-3 flex items-center gap-2 text-left"
-                >
+              <div key={cat.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-2">
                   <span className="text-xl">{cat.icon}</span>
                   <span className="font-semibold flex-1">{cat.name}</span>
-                  <span className="text-xs text-kidzy-gray mr-2">{cat.items.length} items</span>
-                  {expandedCat === cat.id ? <ChevronUp size={16} className="text-kidzy-gray" /> : <ChevronDown size={16} className="text-kidzy-gray" />}
-                </button>
-
-                {expandedCat === cat.id && (
-                  <div className="border-t border-gray-100 p-3 space-y-2">
-                    {cat.items.map(item => (
-                      <div key={item.id} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2">
-                        <span className="text-sm flex-1">{item.name}</span>
-                        <span className="text-xs font-bold text-kidzy-purple">{item.dollarValue} K$</span>
-                        <button
-                          onClick={() => {
-                            setConfirmAction({
-                              title: 'Remove Behavior?',
-                              message: `Remove "${item.name}"?`,
-                              confirmText: 'Remove',
-                              confirmColor: 'red',
-                              onConfirm: () => {
-                                dispatch({ type: 'REMOVE_BEHAVIOR_ITEM', payload: item.id });
-                              }
-                            });
-                          }}
-                          className="p-1 text-gray-300 hover:text-red-400 transition-colors"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => setShowAddItem(cat.id)}
-                      className="w-full p-2 border-2 border-dashed border-purple-200 rounded-lg text-kidzy-purple text-xs font-semibold hover:bg-purple-50 transition-colors"
-                    >
-                      <Plus size={12} className="inline mr-1" /> Add Behavior
-                    </button>
-                    {!cat.id.startsWith('cat_') || cat.items.length === 0 ? (
-                      <button
-                        onClick={() => {
-                          setConfirmAction({
-                            title: 'Delete Category?',
-                            message: `Delete the "${cat.name}" category?`,
-                            confirmText: 'Delete',
-                            confirmColor: 'red',
-                            onConfirm: () => {
-                              dispatch({ type: 'REMOVE_BEHAVIOR_CATEGORY', payload: cat.id });
-                              setExpandedCat(null);
-                            }
-                          });
-                        }}
-                        className="w-full p-2 text-red-400 text-xs font-semibold hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={12} className="inline mr-1" /> Delete Category
-                      </button>
-                    ) : null}
-                  </div>
-                )}
+                  <span className="text-xs text-kidzy-gray">{cat.items.length} items</span>
+                </div>
               </div>
             ))}
           </div>
@@ -408,74 +263,35 @@ export default function SettingsPage({ onBack }) {
         </div>
 
         {/* Account Actions */}
-        <div>
-          <h2 className="text-lg font-display font-bold flex items-center gap-2 mb-3"><LogOut size={20} className="text-kidzy-purple" /> Account</h2>
-          <div className="space-y-2">
-            <button
-              onClick={() => dispatch({ type: 'LOGOUT' })}
-              className="w-full bg-white rounded-xl p-4 flex items-center gap-3 shadow-sm border border-gray-100 hover:bg-purple-50 transition-colors text-left"
-            >
-              <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
-                <LogOut size={20} className="text-kidzy-purple" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-sm text-kidzy-dark">Log Out</p>
-                <p className="text-xs text-kidzy-gray">Return to the home screen</p>
-              </div>
-              <ArrowLeft size={16} className="text-gray-300 rotate-180" />
-            </button>
-          </div>
+        <div className="space-y-3">
+          <button
+            onClick={handleLeaveFamily}
+            disabled={leaving}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-orange-50 text-orange-600 font-semibold rounded-xl border border-orange-200 hover:bg-orange-100 transition-colors disabled:opacity-50"
+          >
+            <LogOut size={16} /> {leaving ? 'Leaving...' : 'Leave This Family'}
+          </button>
         </div>
 
         {/* Danger Zone */}
         <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-          <h3 className="font-bold text-red-700 mb-2">Reset Everything</h3>
-          <p className="text-red-600 text-sm mb-3">This will permanently delete all family data. Export a backup first!</p>
+          <h3 className="font-bold text-red-700 mb-2">Danger Zone</h3>
+          <p className="text-red-600 text-sm mb-3">Sign out of your account. Your family data is safely stored in the cloud.</p>
           <button
-            onClick={() => {
-              setConfirmAction({
-                title: 'Reset Everything?',
-                message: 'This will permanently delete all family data. Export a backup first!',
-                confirmText: 'Continue',
-                confirmColor: 'red',
-                onConfirm: () => {
-                  // First confirmation passed, show second confirmation
-                  setConfirmAction({
-                    title: 'Last Chance!',
-                    message: 'All data will be permanently deleted. Are you absolutely sure?',
-                    confirmText: 'Delete All',
-                    confirmColor: 'red',
-                    onConfirm: () => {
-                      localStorage.clear();
-                      window.location.reload();
-                    }
-                  });
-                }
-              });
+            onClick={async () => {
+              if (confirm('Sign out of Kidzy?')) {
+                dispatch({ type: 'LOGOUT' });
+                await signOut();
+              }
             }}
             className="bg-red-500 text-white font-bold py-2 px-4 rounded-xl text-sm"
           >
-            Reset All Data
+            Sign Out
           </button>
         </div>
       </div>
 
       <AddParentModal isOpen={showAddParent} onClose={() => setShowAddParent(false)} />
-      <AddKidModal isOpen={showAddKid} onClose={() => setShowAddKid(false)} />
-      <AddCategoryModal isOpen={showAddCategory} onClose={() => setShowAddCategory(false)} />
-      {showAddItem && <AddBehaviorItemModal isOpen={true} onClose={() => setShowAddItem(null)} categoryId={showAddItem} />}
-      {showAddChore && <AddChoreModal isOpen={true} onClose={() => setShowAddChore(null)} kidId={showAddChore} />}
-      {showPresets && <PresetChoresModal isOpen={true} onClose={() => setShowPresets(null)} kidId={showPresets} existingChores={(state.chores || []).filter(c => c.kidId === showPresets)} />}
-      {editKid && <EditKidModal isOpen={true} onClose={() => setEditKid(null)} kid={editKid} />}
-      <ConfirmDialog
-        isOpen={!!confirmAction}
-        onConfirm={() => {
-          confirmAction?.onConfirm();
-          setConfirmAction(null);
-        }}
-        onCancel={() => setConfirmAction(null)}
-        {...confirmAction}
-      />
     </div>
   );
 }
@@ -505,246 +321,6 @@ function AddParentModal({ isOpen, onClose }) {
       <button onClick={handleAdd} disabled={!name.trim()}
         className="w-full mt-6 bg-gradient-to-r from-kidzy-teal to-cyan-500 text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
         <UserPlus size={18} className="inline mr-1" /> Add Parent
-      </button>
-    </Modal>
-  );
-}
-
-const CATEGORY_ICONS = ['\u{1F4AA}', '\u{1F9FC}', '\u{2B50}', '\u{1F4DA}', '\u{1F31F}', '\u{1F3AF}', '\u{1F3C3}', '\u{1F3A8}', '\u{1F9E0}', '\u{1F3B5}', '\u{2764}\u{FE0F}', '\u{1F333}'];
-
-function AddCategoryModal({ isOpen, onClose }) {
-  const dispatch = useKidzyDispatch();
-  const [name, setName] = useState('');
-  const [icon, setIcon] = useState('\u{2B50}');
-
-  const handleAdd = () => {
-    if (!name.trim()) return;
-    dispatch({ type: 'ADD_BEHAVIOR_CATEGORY', payload: { name: name.trim(), icon, items: [] } });
-    setName(''); setIcon('\u{2B50}');
-    onClose();
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Category">
-      <div>
-        <label className="block text-sm font-semibold mb-1">Icon</label>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {CATEGORY_ICONS.map(ic => (
-            <button key={ic} onClick={() => setIcon(ic)}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all ${icon === ic ? 'bg-purple-100 ring-2 ring-kidzy-purple scale-110' : 'bg-gray-50 hover:bg-gray-100'}`}>
-              {ic}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-semibold mb-1">Category Name</label>
-        <input type="text" placeholder="e.g., Fitness, Social Skills" value={name} onChange={e => setName(e.target.value)} maxLength={30}
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none" />
-      </div>
-      <button onClick={handleAdd} disabled={!name.trim()}
-        className="w-full mt-6 bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
-        <Plus size={18} className="inline mr-1" /> Add Category
-      </button>
-    </Modal>
-  );
-}
-
-function AddChoreModal({ isOpen, onClose, kidId }) {
-  const dispatch = useKidzyDispatch();
-  const [name, setName] = useState('');
-  const [dollarValue, setDollarValue] = useState('');
-  const [icon, setIcon] = useState('\u{1F9F9}');
-  const [repeat, setRepeat] = useState('daily');
-
-  const handleAdd = () => {
-    if (!name.trim() || !dollarValue) return;
-    dispatch({
-      type: 'ADD_CHORE',
-      payload: { kidId, name: name.trim(), dollarValue: parseFloat(dollarValue), icon, repeat }
-    });
-    setName(''); setDollarValue(''); setIcon('\u{1F9F9}'); setRepeat('daily');
-    onClose();
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Custom Chore">
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Pick an Icon</label>
-          <div className="flex flex-wrap gap-2">
-            {CHORE_ICONS.map(ic => (
-              <button
-                key={ic}
-                onClick={() => setIcon(ic)}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all ${
-                  icon === ic ? 'bg-teal-100 ring-2 ring-teal-400 scale-110' : 'bg-gray-50 hover:bg-gray-100'
-                }`}
-              >
-                {ic}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Chore Name</label>
-          <input type="text" placeholder="e.g., Make the bed" value={name} onChange={e => setName(e.target.value)}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-400 focus:outline-none" />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-kidzy-dark mb-1">K$ Reward</label>
-          <input type="number" placeholder="e.g., 3" value={dollarValue} onChange={e => setDollarValue(e.target.value)} min="1" max="50"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-teal-400 focus:outline-none" />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Repeat</label>
-          <div className="grid grid-cols-2 gap-2">
-            {REPEAT_OPTIONS.map(opt => (
-              <button key={opt.value} onClick={() => setRepeat(opt.value)}
-                className={`py-2.5 px-3 rounded-xl text-sm font-semibold border-2 transition-all ${
-                  repeat === opt.value ? 'border-teal-400 bg-teal-50 text-teal-700' : 'border-gray-200 text-kidzy-gray hover:border-teal-200'
-                }`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <button onClick={handleAdd} disabled={!name.trim() || !dollarValue}
-        className="w-full mt-6 bg-gradient-to-r from-teal-400 to-cyan-500 text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
-        <Plus size={18} className="inline mr-1" /> Add Chore
-      </button>
-    </Modal>
-  );
-}
-
-function PresetChoresModal({ isOpen, onClose, kidId, existingChores }) {
-  const dispatch = useKidzyDispatch();
-  const [selected, setSelected] = useState(new Set());
-  const existingNames = new Set(existingChores.map(c => c.name));
-
-  const toggle = (index) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index); else next.add(index);
-      return next;
-    });
-  };
-
-  const handleAddSelected = () => {
-    selected.forEach(index => {
-      const preset = PRESET_CHORES[index];
-      if (!existingNames.has(preset.name)) {
-        dispatch({ type: 'ADD_CHORE', payload: { kidId, name: preset.name, dollarValue: preset.dollarValue, icon: preset.icon, repeat: preset.repeat } });
-      }
-    });
-    setSelected(new Set());
-    onClose();
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Quick Add Chores">
-      <p className="text-xs text-kidzy-gray mb-3">Select chores to add. Already-assigned chores are greyed out.</p>
-      <div className="space-y-1.5 max-h-[55dvh] overflow-y-auto">
-        {PRESET_CHORES.map((preset, i) => {
-          const alreadyExists = existingNames.has(preset.name);
-          const isSelected = selected.has(i);
-          return (
-            <button key={i} onClick={() => !alreadyExists && toggle(i)} disabled={alreadyExists}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
-                alreadyExists ? 'border-gray-100 bg-gray-50 opacity-50'
-                  : isSelected ? 'border-teal-400 bg-teal-50'
-                  : 'border-gray-100 hover:border-teal-200 hover:bg-teal-50/30'
-              }`}>
-              <span className="text-xl">{preset.icon}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-kidzy-dark truncate">{preset.name}</p>
-                <p className="text-xs text-kidzy-gray">{preset.repeat === 'daily' ? 'Daily' : preset.repeat === 'weekdays' ? 'Weekdays' : 'Weekly'}</p>
-              </div>
-              <span className="text-xs font-bold text-teal-600">{preset.dollarValue} K$</span>
-              {alreadyExists ? <CheckCircle2 size={16} className="text-gray-400" />
-                : isSelected ? <CheckCircle2 size={20} className="text-teal-500" />
-                : <Circle size={20} className="text-gray-300" />}
-            </button>
-          );
-        })}
-      </div>
-      <button onClick={handleAddSelected} disabled={selected.size === 0}
-        className="w-full mt-4 bg-gradient-to-r from-teal-400 to-cyan-500 text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
-        <Plus size={18} className="inline mr-1" /> Add {selected.size} Chore{selected.size !== 1 ? 's' : ''}
-      </button>
-    </Modal>
-  );
-}
-
-function EditKidModal({ isOpen, onClose, kid }) {
-  const dispatch = useKidzyDispatch();
-  const [name, setName] = useState(kid.name || '');
-  const [age, setAge] = useState(kid.age ? String(kid.age) : '');
-
-  const handleSave = () => {
-    if (!name.trim()) return;
-    dispatch({
-      type: 'UPDATE_KID',
-      payload: { id: kid.id, name: name.trim(), age: age ? parseInt(age, 10) : null }
-    });
-    onClose();
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Edit ${kid.name}`}>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Name</label>
-          <input type="text" placeholder="Kid's name" value={name} onChange={e => setName(e.target.value)} maxLength={50}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-pink focus:outline-none text-lg" autoFocus />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-kidzy-dark mb-1">Age</label>
-          <input type="number" placeholder="e.g., 7" value={age} onChange={e => setAge(e.target.value)} min="1" max="18"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-pink focus:outline-none" />
-        </div>
-      </div>
-      <button onClick={handleSave} disabled={!name.trim()}
-        className="w-full mt-6 bg-gradient-to-r from-kidzy-pink to-kidzy-orange text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
-        <Pencil size={18} className="inline mr-1" /> Save Changes
-      </button>
-    </Modal>
-  );
-}
-
-function AddBehaviorItemModal({ isOpen, onClose, categoryId }) {
-  const dispatch = useKidzyDispatch();
-  const [name, setName] = useState('');
-  const [value, setValue] = useState('');
-
-  const handleAdd = () => {
-    if (!name.trim() || !value) return;
-    dispatch({
-      type: 'ADD_BEHAVIOR_ITEM',
-      payload: { categoryId, item: { name: name.trim(), dollarValue: parseFloat(value), frequency: 'daily' } }
-    });
-    setName(''); setValue('');
-    onClose();
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Behavior">
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-semibold mb-1">Behavior Name</label>
-          <input type="text" placeholder="e.g., Practiced piano for 15 min" value={name} onChange={e => setName(e.target.value)} maxLength={60}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none" />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold mb-1">K$ Value</label>
-          <input type="number" placeholder="e.g., 3" value={value} onChange={e => setValue(e.target.value)} min="1" max="50"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-kidzy-purple focus:outline-none" />
-        </div>
-      </div>
-      <button onClick={handleAdd} disabled={!name.trim() || !value}
-        className="w-full mt-6 bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white font-bold py-3.5 rounded-xl shadow-lg disabled:opacity-50">
-        <Plus size={18} className="inline mr-1" /> Add Behavior
       </button>
     </Modal>
   );
