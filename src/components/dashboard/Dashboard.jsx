@@ -68,10 +68,11 @@ export default function Dashboard({ onNavigate }) {
     await signOut();
   };
 
-  // ââ Kid Mode Dashboard âââââââââââââââââââ
+  // Ã¢ÂÂÃ¢ÂÂ Kid Mode Dashboard Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
   if (isKidMode && currentKid) {
-    const unlockedBadges = myAchievements.filter(a => a.progress >= a.target);
-    const nextBadge = myAchievements.find(a => a.progress < a.target);
+    const safeAchievements = Array.isArray(myAchievements) ? myAchievements : [];
+    const unlockedBadges = safeAchievements.filter(a => a.progress >= a.target);
+    const nextBadge = safeAchievements.find(a => a.progress < a.target);
     const balance = myStats?.balance || 0;
 
     return (
@@ -166,7 +167,7 @@ export default function Dashboard({ onNavigate }) {
               <h2 className="text-lg font-display font-bold text-kidzy-dark flex items-center gap-2">
                 <Trophy size={18} className="text-amber-500" /> My Badges
               </h2>
-              <span className="text-xs font-bold text-kidzy-purple">{unlockedBadges.length}/{myAchievements.length}</span>
+              <span className="text-xs font-bold text-kidzy-purple">{unlockedBadges.length}/{safeAchievements.length}</span>
             </div>
             {unlockedBadges.length > 0 ? (
               <div className="flex flex-wrap gap-2 mb-3">
@@ -237,7 +238,7 @@ export default function Dashboard({ onNavigate }) {
     );
   }
 
-  // ââ Parent Mode Dashboard âââââââââââââââââââ
+  // Ã¢ÂÂÃ¢ÂÂ Parent Mode Dashboard Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
   return (
     <div className="pb-24">
       <div className="bg-gradient-to-r from-kidzy-purple to-kidzy-blue text-white p-4 pb-8 rounded-b-3xl shadow-lg">
